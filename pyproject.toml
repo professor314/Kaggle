@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kaggle-ml-toolkit"
+version = "0.1.0"
+description = "An AI-assisted research and learning platform for Kaggle competitions"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas",
+    "scikit-learn",
+    "numpy",
+    "pyyaml",
+    "matplotlib",
+    "seaborn",
+    "shap",
+    "imbalanced-learn",
+]
+
+[project.optional-dependencies]
+dev = [
+    "hypothesis",
+    "pytest",
+    "pytest-cov",
+]
+
+[tool.setuptools.packages.find]
+include = ["kaggle_ml_toolkit*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

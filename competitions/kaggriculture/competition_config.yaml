@@ -1,0 +1,7 @@
+competition_name: kaggriculture
+domain_params: null
+id_column: id
+primary_metric: accuracy
+problem_type: classification
+random_seed: 42
+target_column: target

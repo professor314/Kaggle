@@ -1,0 +1,10 @@
+competition_name: titanic
+target_column: Survived
+id_column: PassengerId
+problem_type: classification
+primary_metric: accuracy
+random_seed: 42
+domain_params:
+  valid_age_range: [0, 80]
+  valid_fare_range: [0, 600]
+  title_extraction_pattern: " ([A-Za-z]+)\\."

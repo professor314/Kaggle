@@ -1,0 +1,21 @@
+competition_name: nlp-getting-started
+problem_type: classification
+primary_metric: f1
+target_column: target
+id_column: id
+random_seed: 42
+domain_params:
+  task: binary text classification
+  description: Predict whether a tweet is about a real disaster or not
+  n_train: 7613
+  n_test: 3263
+  class_balance: "57% negative, 43% positive (mild imbalance)"
+  text_length: "7-157 chars, mean 101"
+  additional_features:
+    - keyword (221 unique, 61 missing)
+    - location (3341 unique, 2533 missing — too noisy to use directly)
+  key_challenges:
+    - Sarcasm and figurative language ("my heart is on fire")
+    - Keywords can be misleading (e.g., "ablaze" used metaphorically)
+    - Short text (tweets) limits context
+    - Some duplicates in training set

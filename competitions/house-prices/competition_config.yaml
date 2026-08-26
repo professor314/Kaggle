@@ -1,0 +1,9 @@
+competition_name: house-prices-advanced-regression-techniques
+target_column: SalePrice
+id_column: Id
+problem_type: regression
+primary_metric: rmse
+random_seed: 42
+domain_params:
+  log_transform_target: true
+  description: "Predict residential home sale prices in Ames, Iowa"

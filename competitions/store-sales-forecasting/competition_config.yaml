@@ -1,0 +1,29 @@
+competition_name: store-sales-time-series-forecasting
+problem_type: regression
+primary_metric: rmsle
+target_column: sales
+id_column: id
+random_seed: 42
+domain_params:
+  country: Ecuador
+  company: Corporación Favorita
+  industry: grocery retail
+  forecast_horizon: 16  # days to predict (Aug 16-31, 2017)
+  granularity: daily store-family level
+  n_stores: 54
+  n_families: 33
+  n_train_rows: 3000888
+  date_range: "2013-01-01 to 2017-08-15"
+  test_range: "2017-08-16 to 2017-08-31"
+  supplementary_data:
+    - oil.csv (daily oil prices — Ecuador is petroleum-dependent)
+    - holidays_events.csv (national, regional, local holidays + transfers)
+    - stores.csv (city, state, type, cluster)
+    - transactions.csv (daily transaction counts per store)
+  key_challenges:
+    - multi-level hierarchy (store × family)
+    - holidays and special events affect demand heavily
+    - oil prices affect Ecuador's economy
+    - 2016 earthquake disrupted some stores
+    - zero-inflated target (many store-family combos have zero sales)
+    - promotions as an exogenous variable

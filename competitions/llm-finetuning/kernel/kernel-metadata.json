@@ -1,0 +1,13 @@
+{
+  "id": "seanconnolly/llm-finetuning-tfidf-baseline",
+  "title": "llm-finetuning-tfidf-baseline",
+  "code_file": "script.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "competition_sources": ["llm-classification-finetuning"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}

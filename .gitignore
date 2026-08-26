@@ -1,0 +1,26 @@
+# Data files (download via kaggle CLI)
+competitions/*/data/*.csv
+competitions/*/data/*.zip
+competitions/*/data/*.gz
+competitions/*/data/*.tar.gz
+competitions/*/data/kaggle-environments-*
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.hypothesis/
+.pytest_cache/
+
+# Submissions (can be regenerated)
+competitions/*/submissions/*.csv
+competitions/*/submissions/*.tar.gz
+
+# Kiro
+.kiro/
+
+# IDE
+.vscode/
+
+# Misc
+*.log

@@ -1,0 +1,16 @@
+{
+  "experiments": [
+    {
+      "experiment_id": "titanic_v1",
+      "timestamp": "2026-08-20T22:21:43.989343",
+      "model_name": "random_forest_optimized",
+      "metrics": {
+        "accuracy": 0.8338945005611672,
+        "precision": 0.8332718861030144,
+        "recall": 0.8338945005611672,
+        "f1": 0.8313845548302642,
+        "auc_roc": 0.8122902885629374
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "seanconnolly/tpu-getting-started-baseline",
+  "title": "tpu-getting-started-baseline",
+  "code_file": "script.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "competition_sources": ["tpu-getting-started"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}

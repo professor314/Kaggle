@@ -1,0 +1,13 @@
+{
+  "id": "seanconnolly/contradictory-watson-tfidf",
+  "title": "contradictory-watson-tfidf",
+  "code_file": "script.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "competition_sources": ["contradictory-my-dear-watson"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}

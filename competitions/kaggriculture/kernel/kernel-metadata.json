@@ -1,0 +1,13 @@
+{
+  "id": "seanconnolly/kaggriculture-greedy-agent",
+  "title": "kaggriculture-greedy-agent",
+  "code_file": "main.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "competition_sources": ["kaggriculture"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}
