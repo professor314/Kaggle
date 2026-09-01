@@ -10,6 +10,37 @@ and get a confirmed leaderboard score first. Local held-out val acc ~0.69.
 """
 
 import glob
+import subprocess
+import sys
+
+# --- P100 compatibility shim -------------------------------------------------
+# Known Kaggle-API bug: kernels pushed via the API always get a Tesla P100
+# (compute capability sm_60) regardless of the "nvidiaTeslaT4" metadata. The
+# preinstalled PyTorch only ships sm_70+, so torch.cuda breaks on the P100.
+# Fix: before importing torch, reinstall a CUDA 12.1 PyTorch build (its wheels
+# include sm_60), which runs fine on the P100. Internet is enabled for this
+# kernel. This adds a few minutes but keeps the whole run well under 120 min.
+def _ensure_p100_torch():
+    try:
+        import torch as _t
+        # If torch already works on this GPU, skip the reinstall.
+        if _t.cuda.is_available():
+            major, _ = _t.cuda.get_device_capability(0)
+            arch_list = _t.cuda.get_arch_list()
+            if any(f"sm_{major}0" in a for a in arch_list) or major >= 7:
+                # supported; probe to be sure
+                _ = (_t.zeros(1, device="cuda") + 1).item()
+                return
+    except Exception:
+        pass
+    print("Reinstalling CUDA 12.1 PyTorch (P100 sm_60 compatibility)...", flush=True)
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "-q",
+         "torch==2.4.1", "--index-url", "https://download.pytorch.org/whl/cu121"],
+        check=False,
+    )
+
+_ensure_p100_torch()
 
 import numpy as np
 import pandas as pd
@@ -25,11 +56,17 @@ from transformers import (
 )
 
 MODEL_NAME = "xlm-roberta-base"
-MAX_LEN = 96
-EPOCHS = 4
-BATCH = 32
+MAX_LEN = 80
+EPOCHS = 3
+BATCH = 64
 LR = 2e-5
 SEED = 42
+# This competition caps GPU notebooks at 120 minutes of runtime. An earlier run
+# took 233 min (it silently fell back to CPU), so Kaggle refused the submission.
+# Settings below (batch 64, max_len 80, 3 epochs, fp16) train xlm-roberta-base
+# on the GPU in well under an hour (even after the P100 torch reinstall). We
+# HARD-REQUIRE the GPU so we never do the slow CPU path that blows the time cap.
+REQUIRE_GPU = True
 
 set_seed(SEED)
 
@@ -52,8 +89,16 @@ if USE_CUDA:
     try:
         _ = (torch.zeros(1, device="cuda") + 1).item()
     except Exception as e:
-        print(f"GPU probe failed ({type(e).__name__}); falling back to CPU.")
+        print(f"GPU probe failed ({type(e).__name__}).")
         USE_CUDA = False
+# Fail loud if the GPU isn't usable. Training xlm-roberta on CPU takes ~4 hours,
+# which exceeds the competition's 120-minute cap and makes the run unsubmittable.
+# Better to error immediately (attach a T4 accelerator) than waste hours on CPU.
+if REQUIRE_GPU and not USE_CUDA:
+    raise RuntimeError(
+        "No usable CUDA GPU. This competition caps runtime at 120 min; the CPU "
+        "path exceeds it. Attach a T4 accelerator and re-run."
+    )
 print(f"Train {train.shape} | Test {test.shape} | using {'cuda' if USE_CUDA else 'cpu'}")
 
 tok = AutoTokenizer.from_pretrained(MODEL_NAME)

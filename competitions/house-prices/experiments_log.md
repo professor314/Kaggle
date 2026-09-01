@@ -140,3 +140,27 @@ single model — the two families make different errors. Progression on this com
 
 ### Next levers
 - Target encoding for Neighborhood; per-model tuning; try a Huber/quantile blend weight.
+
+---
+
+## Experiment: Importance-based feature selection (2026-08-31)
+
+**OOF RMSLE:** full 0.11281 vs top-45 selected 0.11337 | **LB RMSLE:** 0.12345 (no change)
+
+Tested the research doc's hypothesis that cutting the 92 features to the top ~45
+(by aggregated LightGBM gain) would reduce the ~9% CV-LB overfitting gap.
+
+**Result: it did not help.** The full-feature blend (OOF 0.11281) beat the
+selected set (0.11337), so the full blend was submitted and scored **0.12345** —
+identical to the prior best. **This competition has plateaued at ~0.1234** for
+this feature set + tree/linear blend.
+
+### Conclusion / what would actually move it
+Not another blend/selection variant. To break below 0.12 needs genuinely new
+signal or method:
+- Target/mean encoding of Neighborhood (high-cardinality, strong price signal)
+  with proper OOF to avoid leakage.
+- More aggressive/robust outlier handling than the 2 known GrLivArea points.
+- A properly weight-tuned stack (Lasso is strongest; weight it higher) rather
+  than an equal-weight average.
+- These are the documented next steps; equal-weight blends have topped out.

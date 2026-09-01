@@ -55,14 +55,42 @@ OOM'd the kernel, so v8 is single-stage.
 **Status:** Kernel run **COMPLETE**. Output `submission.csv` pulled and verified:
 - Header `id,prediction`, 5,195 rows, predictions in {0,1,2}. Format valid.
 
-**Submission blocker (documented):** This is a notebook/code competition.
-- Direct CSV submit → HTTP 400 (`CreateSubmission`), as expected.
-- Code submit via `-k <kernel> -f submission.csv -v <version>` → HTTP 400
-  (`CreateCodeSubmission`) when guessing the version number.
-- **Manual step for the human:** open the kernel on kaggle.com, use
-  "Submit to Competition" from the notebook's Output, OR run
-  `kaggle competitions submit contradictory-my-dear-watson -k seanconnolly/contradictory-watson-xlmr -f submission.csv -v <correct_version>`
-  after confirming the exact latest version number from the kernel's page.
+**Submission blocker — ROOT CAUSE FOUND (2026-08-31):** The 400 on
+`CreateCodeSubmission` was NOT a version problem. The API error body said:
+
+> "Submission not allowed: Your Notebook's runtime of 233 minutes exceeds this
+> competition's GPU max of 120 minutes."
+
+The v8 kernel ran **233 minutes** because it silently fell back to **CPU**
+(GPU probe / accelerator not effective), and training xlm-roberta on CPU takes
+~4 hours. Kaggle refuses to accept any submission from a run that violated the
+time cap, so every existing version (5-8) 400'd (9+ 403'd = don't exist).
+
+**Fix attempt (kernel v9, 2026-08-31):** Made the run fit under 120 min and
+added `REQUIRE_GPU = True` (raise instead of the silent 4-hour CPU path).
+Faster settings: EPOCHS 4→3, MAX_LEN 96→80, BATCH 32→64, fp16.
+**v9 ERRORed** — and the log revealed the DEEPER root cause below.
+
+**DEEPER ROOT CAUSE (v9 error log):** Kaggle assigned a **Tesla P100** (compute
+capability sm_60), NOT the T4 the metadata requested. This is a documented
+Kaggle-API bug: kernels pushed via the API/CLI always get a P100 regardless of
+`"accelerator": "nvidiaTeslaT4"` (the T4 selection only sticks in the web UI).
+The preinstalled PyTorch only ships sm_70+ kernels, so `torch.cuda` fails on the
+P100 → our guard correctly raised instead of falling back to a 4-hour CPU run.
+
+**Fix (kernel v10, 2026-08-31):** Added a P100-compatibility shim at the top of
+the script: before importing torch, reinstall `torch==2.4.1` from the CUDA 12.1
+index (`cu121` wheels include sm_60), which runs fine on the P100. Internet is
+enabled for this kernel so the reinstall works. Costs ~5 min but keeps the whole
+run well under the 120-min cap. Pushed as version 10.
+
+**When v10 is COMPLETE, submit with (this now works — the earlier 400 was the
+time-cap precondition, not a version/CLI problem):**
+  `kaggle competitions submit contradictory-my-dear-watson -k seanconnolly/contradictory-watson-xlmr -f submission.csv -v 10`
+(or `api.competition_submit_cli(file_name="submission.csv", message=..., competition="contradictory-my-dear-watson", kernel="seanconnolly/contradictory-watson-xlmr", version="10")`).
+
+Alternative if the P100 shim is flaky: open the kernel in the **web UI**, set
+Accelerator = GPU T4, and re-run (T4 has native sm_75 torch support, no shim).
 
 ### Improvement path (to reach 0.85+) — still open
 1. **Two-stage training:** pretrain on MNLI/SNLI, then fine-tune. Memory-safe on
