@@ -63,7 +63,7 @@ def main():
     test_pred = np.zeros(len(Xt))
     params = dict(n_estimators=2000, learning_rate=0.03, num_leaves=63,
                   subsample=0.8, colsample_bytree=0.7, min_child_samples=40,
-                  reg_lambda=1.0, random_state=SEED, verbose=-1)
+                  reg_lambda=1.0, random_state=SEED, verbose=-1, n_jobs=-1)
 
     for k, (tri, vai) in enumerate(cv.split(X, y)):
         m = lgb.LGBMClassifier(**params)

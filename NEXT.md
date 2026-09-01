@@ -54,3 +54,7 @@ STATUS.md, PHASE3_PROGRESS.md, and each competition's experiments_log.md.*
 - Verify test prediction distribution looks sane before submitting (caught a CNN bug).
 - Always call the DL venv python by absolute path.
 - On ANY Kaggle 4xx, print `e.response.text` — the body states the real cause.
+- **Set `n_jobs=-1` (LGBM/XGB) and `thread_count=-1` (CatBoost).** Default is
+  single-core; on big data (600K+ rows) that wastes a multi-core machine and a
+  blend can take 10+ min. With all cores it's several times faster. For CatBoost
+  on huge data consider `task_type="GPU"` (RTX 3090 available).
