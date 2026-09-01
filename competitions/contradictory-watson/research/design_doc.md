@@ -27,8 +27,8 @@ features.
 | Decision | Choice | Rationale |
 |---|---|---|
 | Model | xlm-roberta-base | Multilingual, fits Kaggle GPU |
-| Compute | Kaggle **T4** kernel | P100 breaks shipped PyTorch (sm_60 vs sm_70+) |
-| Submission | Notebook/code submission | Direct CSV submit returns HTTP 400 |
+| Compute | Kaggle GPU kernel | VERIFIED (2026-08-31): API pushes get a P100 (sm_60), not the metadata's T4; preinstalled torch needs sm_70+, so reinstall cu121 torch at kernel start or set T4 in the web UI |
+| Submission | Notebook-submission ONLY | VERIFIED (2026-08-31): direct CSV submit returns HTTP 400 `CreateSubmission`. Getting-Started label does NOT imply CSV is allowed |
 | Training | Single-stage (v8) | Two-stage MNLI pretrain OOM'd the kernel |
 
 ## Status & honest assessment
