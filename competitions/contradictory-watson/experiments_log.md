@@ -89,8 +89,21 @@ time-cap precondition, not a version/CLI problem):**
   `kaggle competitions submit contradictory-my-dear-watson -k seanconnolly/contradictory-watson-xlmr -f submission.csv -v 10`
 (or `api.competition_submit_cli(file_name="submission.csv", message=..., competition="contradictory-my-dear-watson", kernel="seanconnolly/contradictory-watson-xlmr", version="10")`).
 
-Alternative if the P100 shim is flaky: open the kernel in the **web UI**, set
-Accelerator = GPU T4, and re-run (T4 has native sm_75 torch support, no shim).
+**v10 ERRORed** — the P100 torch-reinstall shim did not save the run.
+
+**ACTUAL FIX FOUND via research (kernel-metadata field, VERIFIED by others
+Aug 2026 in Kaggle/kaggle-api issue #490):** The GPU model is selected by the
+`machine_shape` field in kernel-metadata.json, NOT `accelerator` (which the CLI
+ignores) and NOT `enable_gpu` (which is only yes/no). Omitting `machine_shape`
+or using the generic value defaults to **P100** — the exact silent trap we hit.
+
+Fix (kernel v11, 2026-08-31): set `"machine_shape": "NvidiaTeslaT4"` in
+kernel-metadata.json (maps to the UI's "GPU T4 x2", native sm_75 PyTorch, no
+shim needed). Removed the P100 reinstall shim from script.py. This is a pure
+CLI fix — no manual UI step required.
+
+When the T4 run is COMPLETE, submit with:
+  `kaggle competitions submit contradictory-my-dear-watson -k seanconnolly/contradictory-watson-xlmr -f submission.csv -v <version>`
 
 ### Improvement path (to reach 0.85+) — still open
 1. **Two-stage training:** pretrain on MNLI/SNLI, then fine-tune. Memory-safe on

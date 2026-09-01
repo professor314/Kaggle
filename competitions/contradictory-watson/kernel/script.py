@@ -10,37 +10,6 @@ and get a confirmed leaderboard score first. Local held-out val acc ~0.69.
 """
 
 import glob
-import subprocess
-import sys
-
-# --- P100 compatibility shim -------------------------------------------------
-# Known Kaggle-API bug: kernels pushed via the API always get a Tesla P100
-# (compute capability sm_60) regardless of the "nvidiaTeslaT4" metadata. The
-# preinstalled PyTorch only ships sm_70+, so torch.cuda breaks on the P100.
-# Fix: before importing torch, reinstall a CUDA 12.1 PyTorch build (its wheels
-# include sm_60), which runs fine on the P100. Internet is enabled for this
-# kernel. This adds a few minutes but keeps the whole run well under 120 min.
-def _ensure_p100_torch():
-    try:
-        import torch as _t
-        # If torch already works on this GPU, skip the reinstall.
-        if _t.cuda.is_available():
-            major, _ = _t.cuda.get_device_capability(0)
-            arch_list = _t.cuda.get_arch_list()
-            if any(f"sm_{major}0" in a for a in arch_list) or major >= 7:
-                # supported; probe to be sure
-                _ = (_t.zeros(1, device="cuda") + 1).item()
-                return
-    except Exception:
-        pass
-    print("Reinstalling CUDA 12.1 PyTorch (P100 sm_60 compatibility)...", flush=True)
-    subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-q",
-         "torch==2.4.1", "--index-url", "https://download.pytorch.org/whl/cu121"],
-        check=False,
-    )
-
-_ensure_p100_torch()
 
 import numpy as np
 import pandas as pd

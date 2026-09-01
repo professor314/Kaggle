@@ -6,8 +6,9 @@
   "kernel_type": "script",
   "is_private": true,
   "enable_gpu": true,
+  "enable_tpu": false,
   "enable_internet": true,
-  "accelerator": "nvidiaTeslaT4",
+  "machine_shape": "NvidiaTeslaT4",
   "competition_sources": ["contradictory-my-dear-watson"],
   "dataset_sources": [],
   "kernel_sources": []
