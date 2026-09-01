@@ -33,3 +33,8 @@ _kaggle_badges/
 
 # Misc
 *.log
+
+# scratch run logs
+competitions/*/_*.out
+competitions/*/_*.err
+scripts/_*
