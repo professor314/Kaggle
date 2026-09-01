@@ -16,6 +16,15 @@ __pycache__/
 competitions/*/submissions/*.csv
 competitions/*/submissions/*.tar.gz
 
+# Artifacts (downloaded kernel outputs, model weights, predictions - large/regenerable)
+competitions/*/artifacts/
+
+# Training scratch / local caches
+catboost_info/
+_transformer_out/
+_kaggle_badges/
+.venv-dl/
+
 # Kiro
 .kiro/
 

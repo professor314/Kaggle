@@ -1,118 +1,103 @@
 """
-Contradictory, My Dear Watson - TF-IDF + Overlap Features
-Natural Language Inference: Given a premise and hypothesis, classify as
-entailment (0), neutral (1), or contradiction (2).
+Contradictory, My Dear Watson - XLM-RoBERTa NLI (Kaggle kernel, single-stage).
 
-Approach: TF-IDF on premise and hypothesis separately, plus hand-crafted
-overlap and length features that capture entailment/contradiction signals.
+Multilingual NLI: classify premise/hypothesis pairs as entailment (0),
+neutral (1), or contradiction (2). Fine-tunes xlm-roberta-base on Kaggle's GPU.
+
+This is the memory-safe single-stage version. A two-stage variant (pretrain on
+MNLI first) repeatedly OOM'd Kaggle's kernel, so we ship the version that runs
+and get a confirmed leaderboard score first. Local held-out val acc ~0.69.
 """
 
-import pandas as pd
+import glob
+
 import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from scipy.sparse import hstack, csr_matrix
+import pandas as pd
+import torch
+from datasets import Dataset
+from transformers import (
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+    DataCollatorWithPadding,
+    Trainer,
+    TrainingArguments,
+    set_seed,
+)
 
-# Load data from Kaggle paths
-train = pd.read_csv('/kaggle/input/contradictory-my-dear-watson/train.csv')
-test = pd.read_csv('/kaggle/input/contradictory-my-dear-watson/test.csv')
+MODEL_NAME = "xlm-roberta-base"
+MAX_LEN = 96
+EPOCHS = 4
+BATCH = 32
+LR = 2e-5
+SEED = 42
 
-print(f"Train: {train.shape}, Test: {test.shape}")
-print(f"Labels: {train['label'].value_counts().to_dict()}")
-print(f"Languages: {train['language'].nunique()}")
+set_seed(SEED)
 
-# Fill NaN text
-for col in ['premise', 'hypothesis']:
-    train[col] = train[col].fillna('')
-    test[col] = test[col].fillna('')
 
-# Combined text (premise + hypothesis together)
-train['combined'] = train['premise'] + ' [SEP] ' + train['hypothesis']
-test['combined'] = test['premise'] + ' [SEP] ' + test['hypothesis']
+def find(name):
+    m = glob.glob(f"/kaggle/input/**/{name}", recursive=True)
+    if not m:
+        raise FileNotFoundError(f"{name} not found. Inputs: {glob.glob('/kaggle/input/*')}")
+    return m[0]
 
-# TF-IDF: premise separately, hypothesis separately, and combined
-print("Vectorizing...")
-tfidf_premise = TfidfVectorizer(max_features=15000, ngram_range=(1, 2), sublinear_tf=True)
-tfidf_hyp = TfidfVectorizer(max_features=15000, ngram_range=(1, 2), sublinear_tf=True)
-tfidf_combined = TfidfVectorizer(max_features=20000, ngram_range=(1, 2), sublinear_tf=True, analyzer='char_wb')
 
-# Fit on all text
-all_premises = pd.concat([train['premise'], test['premise']])
-all_hyps = pd.concat([train['hypothesis'], test['hypothesis']])
-all_combined = pd.concat([train['combined'], test['combined']])
+train = pd.read_csv(find("train.csv"))
+test = pd.read_csv(find("test.csv"))
 
-tfidf_premise.fit(all_premises)
-tfidf_hyp.fit(all_hyps)
-tfidf_combined.fit(all_combined)
+# Guard against the Kaggle P100 issue where the shipped PyTorch build lacks
+# compiled kernels for the GPU's compute capability (sm_60). We probe the GPU
+# with a tiny op; if it raises, fall back to CPU so the run still completes.
+USE_CUDA = torch.cuda.is_available()
+if USE_CUDA:
+    try:
+        _ = (torch.zeros(1, device="cuda") + 1).item()
+    except Exception as e:
+        print(f"GPU probe failed ({type(e).__name__}); falling back to CPU.")
+        USE_CUDA = False
+print(f"Train {train.shape} | Test {test.shape} | using {'cuda' if USE_CUDA else 'cpu'}")
 
-X_train_p = tfidf_premise.transform(train['premise'])
-X_train_h = tfidf_hyp.transform(train['hypothesis'])
-X_train_c = tfidf_combined.transform(train['combined'])
-X_test_p = tfidf_premise.transform(test['premise'])
-X_test_h = tfidf_hyp.transform(test['hypothesis'])
-X_test_c = tfidf_combined.transform(test['combined'])
+tok = AutoTokenizer.from_pretrained(MODEL_NAME)
+collator = DataCollatorWithPadding(tokenizer=tok)
 
-# Overlap features
-print("Computing overlap features...")
 
-def compute_overlap(df):
-    features = []
-    for _, row in df.iterrows():
-        p_words = set(str(row['premise']).lower().split())
-        h_words = set(str(row['hypothesis']).lower().split())
-        
-        # Word overlap
-        overlap = len(p_words & h_words)
-        union = len(p_words | h_words)
-        jaccard = overlap / max(union, 1)
-        h_coverage = overlap / max(len(h_words), 1)
-        p_coverage = overlap / max(len(p_words), 1)
-        
-        # Length features
-        p_len = len(p_words)
-        h_len = len(h_words)
-        len_diff = p_len - h_len
-        len_ratio = h_len / max(p_len, 1)
-        
-        # Negation signal (crude)
-        neg_words = {'not', 'no', 'never', 'neither', 'nobody', 'nothing', 'nowhere', 'nor'}
-        p_neg = len(p_words & neg_words)
-        h_neg = len(h_words & neg_words)
-        neg_diff = abs(p_neg - h_neg)  # different negation = likely contradiction
-        
-        features.append([jaccard, h_coverage, p_coverage, len_diff, len_ratio, overlap, p_len, h_len, neg_diff])
-    
-    return np.array(features, dtype=np.float32)
+def encode(premise, hypothesis):
+    return tok(list(premise), list(hypothesis), truncation=True,
+               padding=False, max_length=MAX_LEN)
 
-train_overlap = compute_overlap(train)
-test_overlap = compute_overlap(test)
 
-# Language as feature
-lang_tfidf = TfidfVectorizer(analyzer='word')
-lang_tfidf.fit(pd.concat([train['language'], test['language']]))
-X_train_lang = lang_tfidf.transform(train['language'])
-X_test_lang = lang_tfidf.transform(test['language'])
+train_enc = encode(train["premise"], train["hypothesis"])
+train_ds = Dataset.from_dict({**train_enc, "labels": train["label"].tolist()})
 
-# Combine all features
-X_train = hstack([X_train_p, X_train_h, X_train_c, csr_matrix(train_overlap), X_train_lang])
-X_test = hstack([X_test_p, X_test_h, X_test_c, csr_matrix(test_overlap), X_test_lang])
-y_train = train['label'].values
+model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=3)
+steps_per_epoch = max(1, -(-len(train_ds) // BATCH))
+args = TrainingArguments(
+    output_dir="/kaggle/working/_out",
+    num_train_epochs=EPOCHS,
+    per_device_train_batch_size=BATCH,
+    learning_rate=LR,
+    weight_decay=0.01,
+    warmup_steps=int(steps_per_epoch * EPOCHS * 0.06),
+    fp16=USE_CUDA,
+    logging_steps=100,
+    save_strategy="no",
+    report_to=[],
+    seed=SEED,
+    use_cpu=not USE_CUDA,
+)
+Trainer(model=model, args=args, train_dataset=train_ds, data_collator=collator).train()
+model.eval()
 
-print(f"Total features: {X_train.shape[1]}")
+device = "cuda" if USE_CUDA else "cpu"
+model.to(device)
+preds = []
+prem, hyp = test["premise"].tolist(), test["hypothesis"].tolist()
+with torch.no_grad():
+    for start in range(0, len(prem), 128):
+        enc = tok(prem[start:start + 128], hyp[start:start + 128], truncation=True,
+                  padding=True, max_length=MAX_LEN, return_tensors="pt").to(device)
+        preds.append(model(**enc).logits.argmax(-1).cpu().numpy())
+preds = np.concatenate(preds)
 
-# Train
-print("Training LogisticRegression...")
-model = LogisticRegression(C=0.5, max_iter=1000, solver='lbfgs', random_state=42)
-model.fit(X_train, y_train)
-
-train_acc = model.score(X_train, y_train)
-print(f"Train accuracy: {train_acc:.4f}")
-
-# Predict
-predictions = model.predict(X_test)
-print(f"Predictions: {pd.Series(predictions).value_counts().to_dict()}")
-
-# Save submission
-submission = pd.DataFrame({'id': test['id'], 'prediction': predictions})
-submission.to_csv('/kaggle/working/submission.csv', index=False)
-print(f"Submission saved: {submission.shape[0]} rows")
+sub = pd.DataFrame({"id": test["id"], "prediction": preds.astype(int)})
+sub.to_csv("/kaggle/working/submission.csv", index=False)
+print(f"Saved submission {sub.shape} | dist {pd.Series(preds).value_counts().sort_index().to_dict()}")

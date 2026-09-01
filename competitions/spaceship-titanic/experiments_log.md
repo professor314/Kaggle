@@ -57,7 +57,32 @@ features = ['CryoSleep', 'TotalSpending', 'LogSpending', 'NoSpending', 'Age', 'I
 |---|-------|----------|----|----|-----|-------|
 | 1 | GBM Moderate (arena winner) | 22 | 0.8073 | 0.7994 | 0.8% | ✅ Excellent alignment |
 | 2 | Research V2a (LEAKAGE) | 48 | 0.9524 | 0.4931 | 45.9% | ❌ Target leakage from GroupSurvivalRate |
-| 3 | Research V2b (HGB, no leakage) | 50 | 0.8119 | 0.8024 | 0.9% | ✅ **New best** — spending ratios + interactions |
+| 3 | Research V2b (HGB, no leakage) | 50 | 0.8119 | 0.8024 | 0.9% | ✅ Best — spending ratios + interactions |
+| 4 | LightGBM (boosting sweep) | 50 | 0.8120 | 0.8015 | 1.1% | Tied prior best; see Experiment 4 |
+
+## Experiment 4: Boosting library sweep + stacking (Phase 3)
+
+**Date:** 2026-08-27
+**Models:** LightGBM, XGBoost, CatBoost, HistGB on the 50 no-leakage features,
+plus a logistic-regression OOF stack and a simple-average blend.
+
+### CV results
+- LightGBM: **0.8120** (best individual) | HistGB: 0.8119 | XGBoost: 0.8093 | CatBoost: 0.8084
+- Stacked ensemble: 0.8095 | Simple average: 0.8102
+- **LB (LightGBM): 0.80149** — tied the prior 0.8024 best.
+
+### Surprising finding
+Stacking/averaging the four boosting libraries **did not beat the best single
+model** — they are highly correlated and make the same errors, so combining them
+adds meta-learner variance without diversity benefit. LightGBM alone was best.
+
+### Conclusion: this competition has plateaued (~0.80-0.802) for tree models
+The signal is dominated by CryoSleep + spending; extra model variety is noise.
+Real gains would need **new signal**, not new models:
+- Impute missing CryoSleep from zero-spending (they're near-equivalent)
+- Name-based family/surname grouping features
+- Group-level aggregates (group's total spend, group cabin consistency)
+These are the next levers if we revisit.
 
 ---
 

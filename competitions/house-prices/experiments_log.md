@@ -113,3 +113,30 @@ features = ['OverallQual', 'TotalSF', 'GrLivArea', 'TotalBath', 'GarageCars',
 **Submission Status:** success
 **File:** arena_v3_stack_20260821_213943.csv
 **Method:** ArenaGenerator (10-min budget, 2 feature sets) → ModelOptimizer (randomized, 50 iter)
+
+
+---
+
+## Experiment: Boosting blend + outlier removal (Phase 3, 2026-08-27)
+
+**OOF RMSLE:** 0.11281 (simple-average blend) | **LB RMSLE:** 0.12345 (new best)
+
+Reused the 92-feature engineering, dropped the two known GrLivArea outliers
+(>4000 sqft, low price), and blended 5 diverse base models:
+
+| Base model | OOF RMSLE |
+|---|---|
+| CatBoost | 0.11461 |
+| XGBoost | 0.11485 |
+| LightGBM | 0.12059 |
+| Lasso | 0.12059 |
+| Ridge | 0.12101 |
+| **Simple-average blend** | **0.11281** |
+
+The simple average narrowly beat a Ridge-meta stack (0.11281 vs 0.11301), so the
+blend was chosen. As on Home-Data-ML, combining trees + linear models beat any
+single model — the two families make different errors. Progression on this comp:
+0.13560 → 0.12644 → **0.12345**.
+
+### Next levers
+- Target encoding for Neighborhood; per-model tuning; try a Huber/quantile blend weight.

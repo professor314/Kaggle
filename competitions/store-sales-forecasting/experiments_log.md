@@ -76,4 +76,26 @@ Each family has different seasonality and promotion response:
 |---|-------|-----------|----------|-----|-------|
 | 1 | Auto-pipeline (broken) | — | 1.292 | — | Config was wrong |
 | 2 | Global LightGBM | 0.401 | 0.477 | 19% | Baseline |
-| 3 | Per-family LightGBM | 0.395 | **0.423** | 7% | **New best** |
+| 3 | Per-family LightGBM | 0.395 | 0.423 | 7% | Per-family specialization |
+| 4 | Per-family v2 (+holiday+tx) | 0.391 | **0.421** | 8% | **New best** |
+
+## Experiment 3: Per-Family v2 — holiday proximity + transaction lags
+
+**Date:** 2026-08-27
+**Val RMSLE:** 0.39129 | **LB RMSLE:** 0.42061 (new best, down from 0.42319)
+
+### New features added on top of per-family v1
+- **Holiday proximity:** `days_until_holiday`, `days_since_holiday`, `is_holiday_window`
+  (within 3 days). Computed once on the ~1,700 unique dates and merged back.
+- **Transaction lags:** `tx_lag_16` and `tx_roll_mean_7` (per store, shifted 16 days
+  to stay leakage-safe, matching the sales-lag offset).
+
+### Result
+Small but real: LB 0.42319 → 0.42061. The holiday-window signal helps around the
+big Ecuadorian holidays; lagged transactions add a store-traffic proxy. Both are
+leakage-safe (16+ day offsets).
+
+### Next levers (unchanged)
+- Recursive near-term lags (predict days 1-7, feed as features for 8-16)
+- Per-family hyperparameter tuning (families differ a lot in optimal depth/iters)
+- Multiple validation windows to tighten the CV-LB gap

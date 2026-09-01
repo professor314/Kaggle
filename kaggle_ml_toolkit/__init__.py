@@ -31,6 +31,26 @@ from kaggle_ml_toolkit.augmenter import Augmenter
 from kaggle_ml_toolkit.research import ResearchDocumentGenerator
 from kaggle_ml_toolkit.pipeline import Pipeline
 
+
+def __getattr__(name):
+    """Lazily expose deep-learning classes.
+
+    The deep learning module depends on torch/transformers, which only exist in
+    the dedicated `.venv-dl` (Python 3.12) environment. Importing it lazily keeps
+    `import kaggle_ml_toolkit` working on the main Python 3.14 tabular env where
+    torch is intentionally absent.
+    """
+    if name in ("TransformerClassifier", "DeepLearningTrainer", "CNNClassifier",
+                "get_device", "gpu_info"):
+        from kaggle_ml_toolkit import deep_learning
+
+        return getattr(deep_learning, name)
+    if name in ("seed_everything", "autocast_context"):
+        from kaggle_ml_toolkit import gpu_utils
+
+        return getattr(gpu_utils, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 __all__ = [
     "__version__",
     # Config
@@ -71,4 +91,12 @@ __all__ = [
     "ResearchDocumentGenerator",
     # Pipeline
     "Pipeline",
+    # Deep learning (lazy — requires the .venv-dl environment)
+    "TransformerClassifier",
+    "DeepLearningTrainer",
+    "CNNClassifier",
+    "get_device",
+    "gpu_info",
+    "seed_everything",
+    "autocast_context",
 ]

@@ -5,8 +5,8 @@
   "language": "python",
   "kernel_type": "script",
   "is_private": true,
-  "enable_gpu": false,
-  "enable_internet": false,
+  "enable_gpu": true,
+  "enable_internet": true,
   "competition_sources": ["tpu-getting-started"],
   "dataset_sources": [],
   "kernel_sources": []
