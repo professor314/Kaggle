@@ -120,4 +120,13 @@ When the T4 run is COMPLETE, submit with:
 |---|-------|:---------:|:------:|-------|
 | 1 | TF-IDF + overlap (LR) | ~0.40 | pending | Barely above chance |
 | 2 | XLM-R base (kernel, 4 ep) | 0.69 val | pending | Superseded by v8 |
-| 3 | XLM-R single-stage T4 v8 | 0.69 val | pending (manual submit) | Kernel COMPLETE, submission.csv valid, needs web/kernel submit |
+| 3 | XLM-R single-stage T4 v8 | 0.69 val | superseded | Ran on CPU (P100 broke), 233 min, unsubmittable |
+| 4 | XLM-R single-stage T4 v11 | 0.69 val | **0.66159** | SUBMITTED 2026-09-01. machine_shape=NvidiaTeslaT4 fix worked; ran on GPU under the cap |
+
+## Result (2026-09-01): LB accuracy 0.66159
+
+First successful Watson submission. The whole saga was a GPU-selection bug
+(`machine_shape` must be `NvidiaTeslaT4`, not `accelerator`), not model or CLI
+issues. LB 0.66 tracks the ~0.69 local val. This is a single-stage baseline.
+**To improve toward 0.85+:** two-stage MNLI/SNLI pretrain then fine-tune
+(memory-safe on T4 via subsample + lazy tokenization).

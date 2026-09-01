@@ -1,0 +1,9 @@
+Train (668665, 16) | Test (286571, 16) | pos rate 0.1746
+  fold 0: AUC 0.94060
+  fold 1: AUC 0.94150
+  fold 2: AUC 0.94292
+  fold 3: AUC 0.94234
+  fold 4: AUC 0.94187
+
+OOF AUC: 0.94184
+Saved: C:\Users\profe\OneDrive\Desktop\Sean Obsidian\Projects\Kaggle\competitions\playground-s6e9\submissions\lgbm_pipeline.csv
