@@ -12,6 +12,14 @@ from kaggle_ml_toolkit.config import (
     SUPPORTED_PROBLEM_TYPES,
     VALID_METRICS,
 )
+from kaggle_ml_toolkit.compute import (
+    n_jobs,
+    gpu_available,
+    lgbm_params,
+    xgb_params,
+    catboost_params,
+    summary as compute_summary,
+)
 from kaggle_ml_toolkit.loader import DataBundle, load_csv, load_competition_data
 from kaggle_ml_toolkit.cleaner import DataCleaner
 from kaggle_ml_toolkit.feature_engineer import FeatureEngineer

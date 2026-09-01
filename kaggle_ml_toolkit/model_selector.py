@@ -25,7 +25,9 @@ class ModelSelector:
 
     CLASSIFICATION_MODELS: Dict[str, object] = {
         "logistic_regression": LogisticRegression(max_iter=1000, random_state=42),
-        "random_forest": RandomForestClassifier(n_estimators=100, random_state=42),
+        "random_forest": RandomForestClassifier(
+            n_estimators=100, random_state=42, n_jobs=-1
+        ),
         "gradient_boosting": GradientBoostingClassifier(
             n_estimators=100, random_state=42
         ),
@@ -36,7 +38,7 @@ class ModelSelector:
     REGRESSION_MODELS: Dict[str, object] = {
         "linear_regression": LinearRegression(),
         "random_forest_regressor": RandomForestRegressor(
-            n_estimators=100, random_state=42
+            n_estimators=100, random_state=42, n_jobs=-1
         ),
         "gradient_boosting_regressor": GradientBoostingRegressor(
             n_estimators=100, random_state=42
@@ -136,12 +138,15 @@ class ModelSelector:
 
                 model_clone = clone(model)
 
+                from kaggle_ml_toolkit.compute import n_jobs
+
                 scores = cross_val_score(
                     model_clone,
                     X,
                     y,
                     cv=cv_folds,
                     scoring=sklearn_scorer,
+                    n_jobs=n_jobs(),  # run CV folds across all cores
                 )
 
                 # For neg_* metrics, negate scores so higher = better
