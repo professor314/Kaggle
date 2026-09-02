@@ -51,6 +51,21 @@ This competition rejects any submission whose kernel used internet
 So the kernel runs with `enable_internet: false`. Consequence: no runtime
 download of pretrained weights -> baseline trains EfficientNet-B0 FROM SCRATCH.
 
+## Data profiling (VERIFIED 2026-09-02) — decisions before modeling
+- **Test has NO reports** (`test.csv` = StudyInstanceUID only; no other CSVs).
+  Reports are train-only -> they are a LABEL SOURCE; the scored model is IMAGE-based.
+- **Labels are clean**: values are exactly {0.0, 1.0}; blanks are truly UNLABELED
+  (58/4407), not zeros. Do NOT treat blanks as negatives.
+- **Reports clean**: 0 empty, 0 dup studies, length 52..4743 (median 977).
+- **DICOM**: uint16, MIXED dimensions (416/512/560/768...) -> resize REQUIRED;
+  per-series value ranges vary wildly -> per-image percentile windowing REQUIRED
+  (no fixed scale).
+- **Series**: 3-14 per study (median 5). Planes Sagittal 9864 / Coronal 8609 /
+  Axial 5898. `Fat_Suppression` is a perfect duplicate of `Fluid_Sensitive`
+  (drop one). Plane is informative: meniscus/ligaments best on sagittal,
+  collaterals/OA on coronal, effusion on axial -> select slices per-plane, don't
+  blend all series blindly.
+
 ## Next iterations (post-baseline)
 - Attach timm EfficientNet weights as a Kaggle dataset -> restore pretrained init
   offline (the single biggest expected quality lever given 58 labels).
