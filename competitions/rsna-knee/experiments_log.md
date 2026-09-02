@@ -108,6 +108,29 @@ Still stuck: Effusion 0.49 (35/58 positive, little to separate), Medial Meniscus
 2. Train the image model on ~4,407 weakly-labeled studies (vs 58).
 3. Image model predicts the test set. Validate against the 58 gold labels.
 
+## Exp 5: v2 kernel (reports->weak-labels->image model) — IN FLIGHT
+
+Kernel `seanconnolly/rsna-knee-v2` (T4, internet off, weights dataset attached).
+Weak-labels a 1500-study subsample of the unlabeled pool from reports, trains
+EfficientNet-B0 (K=6 slices, IMG=192, 6 epochs), and logs **gold_val_macroAUC**
+against the 58 gold studies each epoch (the honest metric).
+
+STATUS at session end (2026-09-02): kernel RUNNING (still reading DICOMs; the
+~1500x6 reads off the mounted FS are the slow part).
+
+### NEXT SESSION - resume here
+1. `kaggle kernels status seanconnolly/rsna-knee-v2`
+   - COMPLETE -> pull output, read the gold_val_macroAUC per epoch:
+       * >0.5 clearly -> the reports->images approach works. Submit v2:
+         `kaggle competitions submit rsna-knee-abnormality-detection -k seanconnolly/rsna-knee-v2 -f submission.csv -v <ver> -m "reports weak-labels + EfficientNet"`
+         then scale WEAK_TRAIN_N / K / EPOCHS within the GPU cap.
+       * ~0.5 -> weak-labels-to-images isn't extracting yet; try per-plane slice
+         selection + fix the 5 chance-level report rules (Effusion, Medial
+         Meniscus, Lateral OA especially) before scaling.
+   - ERROR/timeout -> shrink WEAK_TRAIN_N (e.g. 500) to prove it finishes, then grow.
+2. Record gold-val + LB numbers here; update STATUS.md.
+3. Blog post stays draft; finish offline + publish when the model is real.
+
 ## Submission History
 
 | # | Model | LB (public) | Notes |
