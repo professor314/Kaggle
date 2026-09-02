@@ -38,3 +38,6 @@ _kaggle_badges/
 competitions/*/_*.out
 competitions/*/_*.err
 scripts/_*
+
+competitions/*/*.log
+competitions/*/*.err
