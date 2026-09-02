@@ -30,6 +30,7 @@
 | **LLM-Finetuning** | pending | — | kernel v3 | — | ⚠️ Code Competition |
 | **TPU-Getting-Started** | pending | — | kernel v3 | — | ⚠️ Code Competition |
 | **Kaggriculture** | pending | — | agent | — | ⚠️ Code Competition ($50K) |
+| **RSNA-Knee** | 0.500 (smoke) | — | 2 | ✅ Full | 🟡 Pipeline proven; 2.5D EfficientNet baseline submitted (from scratch, 58 labels) |
 
 ---
 

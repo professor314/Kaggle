@@ -1,0 +1,15 @@
+{
+  "id": "seanconnolly/rsna-knee-baseline",
+  "title": "rsna-knee-baseline",
+  "code_file": "baseline.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "machine_shape": "NvidiaTeslaT4",
+  "competition_sources": ["rsna-knee-abnormality-detection"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}

@@ -40,7 +40,20 @@ the baseline.
 | GPU | Kaggle T4 via `machine_shape: NvidiaTeslaT4` | VERIFIED fix from the Watson saga |
 | Excluded (baseline) | 3D conv, report-text multimodal, TTA, ensembles, pseudo-labels | Save for later iterations |
 
-## Status
-- Exploration kernel COMPLETE (2026-09-02); all facts above VERIFIED.
-- Spec written: `.kiro/specs/rsna-knee-baseline/` (requirements, design, tasks).
-- Next: implement the local scaffolding + tests, then a tiny proof-run kernel.
+## Status (2026-09-02)
+- Exploration + smoke + baseline kernels all COMPLETE. Two submissions accepted:
+  smoke (LB 0.500) and the 2.5D EfficientNet baseline (accepted, LB pending).
+- 8 local unit tests pass (`test_rsna_lib.py`).
+
+## VERIFIED gotcha: no internet in submitted kernels
+This competition rejects any submission whose kernel used internet
+("Your Notebook cannot use internet access in this competition", HTTP 400).
+So the kernel runs with `enable_internet: false`. Consequence: no runtime
+download of pretrained weights -> baseline trains EfficientNet-B0 FROM SCRATCH.
+
+## Next iterations (post-baseline)
+- Attach timm EfficientNet weights as a Kaggle dataset -> restore pretrained init
+  offline (the single biggest expected quality lever given 58 labels).
+- Mine the multilingual `Report` text (multimodal) for weak labels on the other
+  ~4,349 studies.
+- More slices / per-fold macro-AUC validation / light augmentation.

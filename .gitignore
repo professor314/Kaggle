@@ -47,3 +47,5 @@ compute.yaml
 
 scripts/*.log
 scripts/*.err
+
+competitions/*/artifacts_*/
