@@ -147,6 +147,43 @@ The toolkit integrates with the Kaggle CLI for downloading competition data and 
    kaggle competitions list
    ```
 
+## Compute Configuration (CPU cores / GPU)
+
+The toolkit auto-detects your hardware and uses all CPU cores (and the GPU, if a
+CUDA-enabled PyTorch is installed) for the gradient boosters and cross-validation.
+You don't need to configure anything to get fast runs.
+
+To tune it for your own machine, override without editing code, either way works
+(environment variables win over the file):
+
+**Environment variables**
+
+```bash
+KAGGLE_TOOLKIT_CORES=8     # cap worker threads (default: all logical cores)
+KAGGLE_TOOLKIT_USE_GPU=0   # 0/false = force CPU, 1/true = use GPU, unset = auto
+```
+
+**Config file** — copy `compute.example.yaml` to `compute.yaml` (repo root or
+`~/.kaggle_toolkit/compute.yaml`):
+
+```yaml
+cores: 8          # or null for all cores
+use_gpu: false    # or null to auto-detect
+```
+
+Then in code:
+
+```python
+from kaggle_ml_toolkit import compute
+import lightgbm as lgb
+
+print(compute.summary())              # e.g. "cores=8 (capped) | off (config)"
+model = lgb.LGBMClassifier(**compute.lgbm_params(), n_estimators=1500)
+# compute.xgb_params() and compute.catboost_params() do the same for XGB/CatBoost
+```
+
+`compute.yaml` is gitignored (it's machine-specific); commit only the example.
+
 ## How to Contribute
 
 We welcome contributions! See [`CONTRIBUTING.md`](CONTRIBUTING.md) for guidelines on:

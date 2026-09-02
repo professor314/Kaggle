@@ -18,6 +18,7 @@ from kaggle_ml_toolkit.compute import (
     lgbm_params,
     xgb_params,
     catboost_params,
+    reload_config as reload_compute_config,
     summary as compute_summary,
 )
 from kaggle_ml_toolkit.loader import DataBundle, load_csv, load_competition_data

@@ -1,0 +1,19 @@
+# Compute configuration for the Kaggle ML Toolkit (OPTIONAL).
+#
+# The toolkit auto-detects your hardware by default (all CPU cores; GPU if a
+# CUDA-enabled PyTorch is installed), so you do NOT need this file. Copy it to
+# `compute.yaml` (same folder, or ~/.kaggle_toolkit/compute.yaml) only if you
+# want to override for your machine.
+#
+# Environment variables take priority over this file:
+#   KAGGLE_TOOLKIT_CORES=8      KAGGLE_TOOLKIT_USE_GPU=0
+
+# Cap the number of CPU worker threads. Omit / null = use all logical cores.
+# Useful on a shared machine or a laptop you still want to use while training.
+cores: null
+
+# GPU usage:
+#   true  = use the GPU (only takes effect if CUDA is actually available)
+#   false = force CPU even if a GPU is present
+#   null  = auto-detect (recommended)
+use_gpu: null
