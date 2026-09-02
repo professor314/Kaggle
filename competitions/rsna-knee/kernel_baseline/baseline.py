@@ -24,11 +24,11 @@ FINDINGS = ["ACL", "MCL", "Medial Meniscus", "Lateral Meniscus", "Medial OA",
 ID_COL = "StudyInstanceUID"
 BASE = "/kaggle/input"
 
-K = 8            # slices per study
+K = 12           # slices per study
 IMG = 224
-EPOCHS = 8
+EPOCHS = 20      # pretrained backbone -> can train the head/features longer
 BATCH = 16
-LR = 3e-4
+LR = 2e-4
 SEED = 42
 t0 = time.time()
 
@@ -133,20 +133,56 @@ def main():
             Y = torch.tensor(np.array(Ytr, dtype=np.float32))
             log(f"train tensor {tuple(X.shape)} labels {tuple(Y.shape)}")
 
-            # Internet is disabled in this competition's kernels, so we cannot
-            # download pretrained weights at runtime. Train from scratch. (Future
-            # upgrade: attach the timm weights as a Kaggle dataset and set
-            # pretrained=True with a local checkpoint.)
+            # Internet is disabled in this competition's kernels. We attach the
+            # timm EfficientNet-B0 ImageNet weights as a Kaggle dataset and load
+            # them offline (backbone only; our 12-class head stays fresh).
             model = timm.create_model("efficientnet_b0", pretrained=False, num_classes=12)
+            wpath = None
+            for cand in glob.glob("/kaggle/input/**/efficientnet_b0.pth", recursive=True):
+                wpath = cand
+                break
+            if wpath:
+                sd = torch.load(wpath, map_location="cpu")
+                # dataset weights were saved with num_classes=0 (no classifier);
+                # load backbone tensors, ignore the missing 12-class head.
+                missing, unexpected = model.load_state_dict(sd, strict=False)
+                log(f"loaded pretrained backbone from {wpath} "
+                    f"(missing {len(missing)}, unexpected {len(unexpected)})")
+            else:
+                log("WARNING: pretrained weights not found; training from scratch")
             model = model.to(device)
             opt = torch.optim.AdamW(model.parameters(), lr=LR, weight_decay=1e-4)
             lossf = nn.BCEWithLogitsLoss()
-            model.train()
+
+            # Hold out ~20% for an honest macro-AUC signal (tiny, but better than
+            # only watching train loss overfit to zero).
             n = len(X)
+            g = torch.Generator().manual_seed(SEED)
+            order = torch.randperm(n, generator=g)
+            n_val = max(4, int(0.2 * n))
+            val_idx, tr_idx = order[:n_val], order[n_val:]
+            log(f"train {len(tr_idx)} / val {len(val_idx)}")
+
+            def macro_auc(model):
+                from sklearn.metrics import roc_auc_score
+                model.eval()
+                with torch.no_grad():
+                    logits = model(X[val_idx].to(device))
+                    p = torch.sigmoid(logits).cpu().numpy()
+                yv = Y[val_idx].numpy()
+                aucs = []
+                for j in range(12):
+                    col = yv[:, j]
+                    if len(np.unique(col)) == 2:  # AUC needs both classes present
+                        aucs.append(roc_auc_score(col, p[:, j]))
+                model.train()
+                return float(np.mean(aucs)) if aucs else float("nan")
+
+            model.train()
             for ep in range(EPOCHS):
-                perm = torch.randperm(n)
+                perm = tr_idx[torch.randperm(len(tr_idx))]
                 tot = 0.0
-                for i in range(0, n, BATCH):
+                for i in range(0, len(perm), BATCH):
                     idx = perm[i:i + BATCH]
                     xb = X[idx].to(device)
                     yb = Y[idx].to(device)
@@ -156,7 +192,9 @@ def main():
                     loss.backward()
                     opt.step()
                     tot += loss.item() * len(idx)
-                log(f"  epoch {ep+1}/{EPOCHS} loss {tot/n:.4f}")
+                if (ep + 1) % 5 == 0 or ep == EPOCHS - 1:
+                    log(f"  epoch {ep+1}/{EPOCHS} loss {tot/len(perm):.4f} "
+                        f"val_macroAUC {macro_auc(model):.4f}")
             use_model = True
         else:
             log(f"only {len(Xtr)} readable labeled studies (<20); using fallback")

@@ -45,9 +45,68 @@ Sampled K=8 slices/study, mean-pooled, EfficientNet-B0 with 12 sigmoids, BCE,
 ### Honest read
 With only 58 labeled studies and no pretrained weights, the model overfits and
 won't score well. But the GOAL of this spec was a valid, in-time, code-and-all
-submission, and that is done. Next levers (future): attach timm weights as a
-Kaggle dataset to restore pretrained init; mine the report text (multimodal);
-more slices; per-fold validation.
+submission, and that is done.
+
+## Exp 3: pretrained backbone + validation macro-AUC (2026-09-02)
+
+Attached timm EfficientNet-B0 ImageNet weights as a Kaggle DATASET
+(`seanconnolly/timm-efficientnet-b0-weights`) so we could load them with internet
+off. Loaded fine (missing=2 = our 12-class head). K=12 slices, 20 epochs, 47/11
+train/val split of the 58 labeled studies.
+
+**Result (the honest signal): validation macro-AUC ~0.5 (0.53 / 0.50 / 0.54 /
+0.45 at epochs 5/10/15/20), while train loss went to 0.006.** The model fully
+memorizes the 47 training studies and generalizes to chance. Pretrained init did
+not rescue it; more epochs made val WORSE (classic overfit).
+
+### Conclusion (important, decides the next direction)
+**58 labeled studies is not enough to learn 12 findings from raw MRI this way.**
+This is the constraint the competition is built around. The reason there are 4,407
+studies with radiology `Report` text but only 58 labels is that **the signal is in
+the reports**. The productive path is NOT a better CNN, it is:
+1. Mine the multilingual `Report` text -> weak labels for the other ~4,349 studies
+   (keyword/negation rules per finding, or a multilingual zero-shot classifier).
+2. Train the image model (or a text model) on THOUSANDS of labels instead of 58.
+3. Optionally translate reports to English first, then a text classifier.
+
+The image-only baseline has hit its ceiling at chance. Next spec iteration should
+be text-driven.
+
+## Exp 4: report-mining rules + test-report check (2026-09-02)
+
+Built bilingual (EN/ES) keyword + negation rules mapping report text -> 12
+findings, validated on the 58 labeled studies.
+
+**Validation macro-AUC 0.592** (vs image model's 0.5). Per-finding:
+- Works: MCL 0.78, Baker's 0.76, Lateral Meniscus 0.67, Contusion 0.66,
+  Fracture 0.62, Synovitis 0.60, ACL 0.57.
+- Still chance (rules wrong/crude): Effusion 0.47, Medial Meniscus 0.49,
+  Medial OA 0.49, Lateral OA 0.49, PF OA 0.51.
+
+**KEY STRUCTURAL FINDING: `test has Report column: False`.** The test set has NO
+report text (reports exist for TRAIN only). So report-mining CANNOT directly
+predict the hidden test set.
+
+### The actual architecture this implies (the winning shape)
+Reports are a LABEL SOURCE, not an inference input:
+1. Mine reports -> weak labels for ALL 4,407 train studies (not just 58).
+2. Train an IMAGE model on those thousands of weakly-labeled studies.
+3. The image model predicts the test set (which only has images).
+This is "distill the radiologist's words into an image model." The report rules
+need improving first (the 5 chance-level findings), then use them as the label
+generator for a much larger image-training set.
+
+### Exp 4b: refined rules (presence vs structure+injury split)
+Split cues into PRESENCE findings (positive if mentioned & not negated) and
+STRUCTURE findings (positive only with injury language nearby). Macro-AUC
+**0.592 -> 0.607**. Gains: PF OA 0.51->0.61, Medial OA 0.49->0.57, ACL held.
+Still stuck: Effusion 0.49 (35/58 positive, little to separate), Medial Meniscus
+0.50, Lateral OA 0.51. Good enough to use as the weak-label generator next.
+
+### Plan locked in
+1. Apply refined rules to ALL 4,407 train reports -> weak labels (as a dataset).
+2. Train the image model on ~4,407 weakly-labeled studies (vs 58).
+3. Image model predicts the test set. Validate against the 58 gold labels.
 
 ## Submission History
 

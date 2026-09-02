@@ -10,6 +10,6 @@
   "enable_internet": false,
   "machine_shape": "NvidiaTeslaT4",
   "competition_sources": ["rsna-knee-abnormality-detection"],
-  "dataset_sources": [],
+  "dataset_sources": ["seanconnolly/timm-efficientnet-b0-weights"],
   "kernel_sources": []
 }
