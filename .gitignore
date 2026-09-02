@@ -44,3 +44,6 @@ competitions/*/*.err
 
 # machine-specific compute override (keep compute.example.yaml)
 compute.yaml
+
+scripts/*.log
+scripts/*.err

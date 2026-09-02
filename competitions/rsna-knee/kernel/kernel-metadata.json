@@ -1,0 +1,14 @@
+{
+  "id": "seanconnolly/rsna-knee-explore",
+  "title": "rsna-knee-explore",
+  "code_file": "explore.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "competition_sources": ["rsna-knee-abnormality-detection"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}
