@@ -52,3 +52,12 @@ well (same lesson as Spaceship-Titanic and House-Prices).
 |---|-------|:-------:|:------:|-------|
 | 1 | LGBM 5-fold + engineered | (not captured) | 0.94161 | First entry |
 | 2 | LGB+XGB+Cat rank blend | 0.94206 | **0.94169** | Correlated bases; marginal gain |
+| 3 | LGBM big-iter (lr0.015, 8000, rich feats) | 0.94171 | submitted | More compute didn't help |
+
+## Experiment 3: LGBM big-iteration (2026-09-02)
+
+Used the new all-cores compute defaults to run lr 0.015 / up to 8000 rounds with
+extra interaction features. OOF AUC **0.94171** = no gain over the baseline.
+Early stopping fired at ~1000-1300 trees, so more rounds were never the binding
+constraint. **S6E9 is not compute-bound** either; gains need OOF target encoding
+or a non-booster base, not more iterations.
