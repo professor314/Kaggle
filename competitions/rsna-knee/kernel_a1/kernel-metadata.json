@@ -1,0 +1,15 @@
+{
+  "id": "seanconnolly/rsna-knee-a1",
+  "title": "rsna-knee-a1",
+  "code_file": "infer_a1.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "machine_shape": "NvidiaTeslaT4",
+  "competition_sources": ["rsna-knee-abnormality-detection"],
+  "dataset_sources": ["dreaddevelopment/raptor-knee-widedense"],
+  "kernel_sources": []
+}

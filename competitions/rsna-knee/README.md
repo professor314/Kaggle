@@ -7,6 +7,10 @@ MRI study**, scored by **macro-averaged ROC AUC**.
 
 This is part of the [Kaggle ML Toolkit](../../README.md) project.
 
+📖 **The story of how this model is being built** — the breakthroughs, dead ends,
+and decisions — lives in [`STORY.md`](STORY.md), updated as we go. License audit
+of every reused public asset is in [`PUBLIC_ASSETS_LICENSES.md`](PUBLIC_ASSETS_LICENSES.md).
+
 ## The problem in one paragraph
 
 4,407 MRI studies, 24,371 series, ~820,000 DICOM slices, 100GB+. You never
