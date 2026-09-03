@@ -135,6 +135,17 @@ nli_train_labels.csv for all 4,407 studies. RUNNING at session pause (labeling
 Goal: beat the 0.607 rules on gold. If it does, use nli_train_labels.csv as the
 image model's training labels AND consider it may transfer better.
 
+### Exp 6 status (2026-09-01 later)
+- NLI labeling kernel COMPLETED: `nli_train_labels.csv` written for all 4,407
+  studies (downloaded locally + uploaded as dataset `seanconnolly/rsna-knee-nli-weaklabels`).
+- BUT that kernel's log came back 0 bytes, so the gold macro-AUC printout was lost.
+- Made a tiny eval kernel (`rsna-knee-nli-eval`) to recompute gold AUC from the
+  labels + train.csv. Fixed a bug (find_root matched the labels dataset folder
+  because it contains "knee" -> now globs for train.csv directly).
+- Kaggle kernel workers are congested; the eval sits in RUNNING for many minutes.
+  When it finishes, read `GOLD macro-AUC (NLI)` from its log. TODO next session
+  if not resolved: just recompute locally (need the 58 gold rows of train.csv).
+
 ### NEXT SESSION - resume here
 1. `kaggle kernels status seanconnolly/rsna-knee-v2`
    - COMPLETE -> pull output, read the gold_val_macroAUC per epoch:
@@ -154,3 +165,20 @@ image model's training labels AND consider it may transfer better.
 |---|-------|:-----------:|-------|
 | 1 | Prevalence smoke test | 0.500 | Proved the pipeline |
 | 2 | 2.5D EfficientNet-B0 (from scratch, 58 labels) | pending | Real model, in-time, accepted |
+
+
+## Exp A.1: Reuse-first — public CC0 trained model (2026-09-02, scored 2026-09-03)
+
+Reused `dreaddevelopment/raptor-knee-widedense` (CC0, verified via Kaggle API),
+a trained CoAtNet 12-finding model, wrapped in our own internet-off T4 inference
+kernel (`kernel_a1/infer_a1.py`, pushed `seanconnolly/rsna-knee-a1`).
+
+**LB 0.924** — a huge jump from our from-scratch work:
+- smoke (prevalence): 0.500
+- from-scratch EfficientNet-B0 (58 labels, mean-pool): 0.533
+- **A.1 reuse CoAtNet: 0.924** (leaders ~0.95)
+
+**Lesson:** the reuse-first strategy paid off immediately — one license-cleared
+CC0 model got us within striking distance of the top in a day. Author reports
+0.9167 gold single-model. This is now the baseline our own MIL work (A.2–A.6)
+must beat. License-safe for the prize (CC0).

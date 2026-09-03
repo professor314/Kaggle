@@ -1,226 +1,152 @@
-"""
-Kaggriculture Agent — Greedy Farming Baseline
-==============================================
-A simple strategy agent that follows a greedy wheat-farming loop:
-1. Buy wheat seeds when low
-2. Move farmer to available tiles
-3. Plant wheat on empty tiles
-4. Water planted crops daily
-5. Harvest when ready
-6. Sell all produce immediately
-7. Scale up to better crops as money grows
+# Kaggriculture agent — GA-evolved genome (run 1, gen 10 best).
+#
+# Self-contained: the winning genome is hardcoded below, so this file needs no
+# external data. Evolved by evo/ga.py over 6,624 self-play games vs `starter`;
+# this genome scored ~$3,994 avg money at 100% winrate vs starter.
+#
+# LOADER RULE (kaggle-environments): the runner selects the LAST callable defined
+# at module scope. So every helper is defined ABOVE, and `agent()` is LAST.
 
-The agent prioritizes actions based on what's immediately available
-on the farmer's current tile, with market orders handled separately.
-"""
+GENES = {
+    "wheat_seed_target": 5.351399153338243,
+    "carrot_gate": 1360.176406325152,
+    "tomato_gate": 6000,
+    "melon_gate": 5097.811470328456,
+    "land2_gate": 8000,
+    "land3_gate": 10951.337487587725,
+    "land4_gate": 25000,
+    "animal_gate": 8000,
+    "cow_gate": 5746.118033054801,
+    "sell_frac": 0.4366451997749106,
+    "sell_min_price": 43.431414641947114,
+    "hoard_days": 4.192730867116591,
+    "fertilize": 0.0896318242520942,
+    "care_animals": 0.4675343420700794,
+    "hire_gate": 80875.01483255414,
+    "plant_priority": 0.6985819173145595,
+}
 
-
-def agent(obs, cfg=None):
-    """Main agent entry point for Kaggriculture."""
-    player = obs["player"]
-    me = obs["farms"][player]
-    private = obs["private"]
-    day = obs["day"]
-    hour = obs["hour"]
-    market_state = obs["market"]
-
-    fx, fy = me["farmer"]
-    tiles = me["tiles"]
-    tile = tiles[fy][fx]
-    money = me["money"]
-    seeds = private["seeds"]
-    shed = private["shed"]
-    unlocked = me["unlocked_quadrants"]
-
-    # --- Market orders (independent of farmer position) ---
-    market = []
-
-    # Sell everything in the shed first
-    for item, count in shed.items():
-        if count > 0 and item != "FERTILIZER":
-            market.append(["SELL", item, count])
-
-    # Buy seeds strategy: wheat is cheapest and fastest
-    wheat_seeds = seeds.get("WHEAT", 0)
-    if wheat_seeds < 5 and money >= 100:
-        buy_count = min(10, money // 10)  # Wheat seeds cost $10 each
-        if buy_count > 0:
-            market.append(["BUY_SEED", "WHEAT", buy_count])
-
-    # As money grows, diversify to better crops
-    if money >= 500:
-        carrot_seeds = seeds.get("CARROT", 0)
-        if carrot_seeds < 3:
-            market.append(["BUY_SEED", "CARROT", 3])
-
-    if money >= 1500:
-        tomato_seeds = seeds.get("TOMATO", 0)
-        if tomato_seeds < 2:
-            market.append(["BUY_SEED", "TOMATO", 2])
-
-    # Buy land when we can afford it and have unlocked fewer quadrants
-    if money >= 1500 and len(unlocked) < 4:
-        market.append(["BUY_LAND"])
-
-    # Limit market orders to avoid exceeding cap
-    market = market[:10]
-
-    # --- Farmer action ---
-    farmer_action = decide_farmer_action(tile, tiles, fx, fy, seeds, day, unlocked)
-
-    # --- Farm hands ---
-    hands_actions = []
-    for i, hand_pos in enumerate(me.get("hands", [])):
-        hx, hy = hand_pos
-        hand_tile = tiles[hy][hx]
-        hand_action = decide_farmer_action(hand_tile, tiles, hx, hy, seeds, day, unlocked)
-        hands_actions.append(hand_action)
-
-    return {
-        "farmer": farmer_action,
-        "hands": hands_actions,
-        "market": market,
-    }
+CROP_FIRST_YIELD = {"WHEAT": 2, "CARROT": 4, "TOMATO": 5, "STRAWBERRY": 6, "MELON": 8}
+_CROP_VALUE = {"WHEAT": 25, "CARROT": 35, "TOMATO": 60, "MELON": 250}
 
 
-def decide_farmer_action(tile, tiles, fx, fy, seeds, day, unlocked):
-    """Decide what a farmer/hand should do on their current tile."""
+def _which_crops(money, g):
+    allowed = ["WHEAT"]
+    if money >= g["carrot_gate"]:
+        allowed.append("CARROT")
+    if money >= g["tomato_gate"]:
+        allowed.append("TOMATO")
+    if money >= g["melon_gate"]:
+        allowed.append("MELON")
+    allowed.sort(key=lambda c: _CROP_VALUE[c], reverse=(g["plant_priority"] >= 0.5))
+    return allowed
 
-    # If standing on a plant
+
+def _decide(tile, tiles, fx, fy, seeds, day, money, g):
+    if isinstance(tile, dict) and tile.get("kind") in ("COOP", "PASTURE"):
+        if tile.get("animal"):
+            if not tile.get("fed_today", False):
+                return ["FEED"]
+            if g["care_animals"] >= 0.5 and not tile.get("cared_today", False):
+                return ["CARE"]
+            if tile.get("fertilizer_available", 0):
+                return ["COLLECT_FERTILIZER"]
+            if tile.get("yield_units", 0) > 0:
+                return ["HARVEST"]
+        return ["PASS"]
     if isinstance(tile, dict) and tile.get("kind") == "PLANT":
-        crop_age = day - tile.get("planted_day", day)
-
-        # Harvest if ready (wheat first_yield_day = 2, carrot = 4, tomato = 5)
         crop = tile.get("crop", "WHEAT")
-        first_yield = get_first_yield_day(crop)
-
-        if crop_age >= first_yield and tile.get("yield_units", 0) > 0:
+        age = day - tile.get("planted_day", day)
+        if age >= CROP_FIRST_YIELD.get(crop, 2) and tile.get("yield_units", 0) > 0:
             return ["HARVEST"]
-
-        # Water if not watered today
         if not tile.get("watered_today", False):
             return ["WATER"]
-
-        # Already watered and not ready to harvest — move to find work
-        target = find_nearest_work(tiles, fx, fy, seeds, day, unlocked)
-        if target:
-            return move_toward(fx, fy, target[0], target[1])
+        if (g["fertilize"] >= 0.5 and tile.get("fertilized_until_day", -1) < day
+                and crop in ("WHEAT", "CARROT", "MELON")):
+            return ["FERTILIZE"]
         return ["PASS"]
-
-    # If standing on a weed, dig it
     if isinstance(tile, dict) and tile.get("kind") == "WEED":
         return ["DIG"]
-
-    # If standing on an animal structure
-    if isinstance(tile, dict) and tile.get("kind") in ("COOP", "PASTURE"):
-        # Feed if not fed today
-        if tile.get("animal") and not tile.get("fed_today", False):
-            return ["FEED"]
-        # Collect fertilizer if available
-        if tile.get("fertilizer_available", 0) > 0:
-            return ["COLLECT_FERTILIZER"]
-        # Move elsewhere
-        target = find_nearest_work(tiles, fx, fy, seeds, day, unlocked)
-        if target:
-            return move_toward(fx, fy, target[0], target[1])
-        return ["PASS"]
-
-    # If on an empty tile, plant if we have seeds
     if tile is None:
-        # Prefer better seeds if available
-        for crop in ["TOMATO", "CARROT", "WHEAT"]:
+        for crop in _which_crops(money, g):
             if seeds.get(crop, 0) > 0:
                 return ["PLANT", crop]
-
-    # No action possible here — find somewhere useful to go
-    target = find_nearest_work(tiles, fx, fy, seeds, day, unlocked)
-    if target:
-        return move_toward(fx, fy, target[0], target[1])
-
     return ["PASS"]
 
 
-def get_first_yield_day(crop):
-    """Return the first day a crop can be harvested."""
-    yield_days = {
-        "WHEAT": 2,
-        "CARROT": 4,
-        "TOMATO": 5,
-        "STRAWBERRY": 6,
-        "MELON": 8,
-    }
-    return yield_days.get(crop, 2)
+def _place_or_build(tile, shed, fx, fy, tiles, seeds, day, money, g):
+    owns_goose = shed.get("GOOSE", 0) > 0
+    owns_cow = shed.get("COW", 0) > 0
+    if tile is None and (owns_goose or owns_cow):
+        return ["BUILD_COOP"] if owns_goose else ["BUILD_PASTURE"]
+    if isinstance(tile, dict) and tile.get("kind") == "COOP" and not tile.get("animal") and owns_goose:
+        return ["PLACE", "GOOSE", 1]
+    if isinstance(tile, dict) and tile.get("kind") == "PASTURE" and not tile.get("animal") and owns_cow:
+        return ["PLACE", "COW", 1]
+    return _decide(tile, tiles, fx, fy, seeds, day, money, g)
 
 
-def find_nearest_work(tiles, fx, fy, seeds, day, unlocked):
-    """Find the nearest tile that needs attention."""
-    best_target = None
-    best_dist = float('inf')
+def agent(obs):
+    """GA-evolved Kaggriculture agent. MUST be the last function defined."""
+    g = GENES
+    player = obs["player"]
+    me = obs["farms"][player]
+    priv = obs["private"]
+    day = obs["day"]
+    fx, fy = me["farmer"]
+    tiles = me["tiles"]
+    money = me["money"]
+    seeds = priv["seeds"]
+    shed = priv["shed"]
+    prices = obs["market"]["prices"]
+    unlocked = me["unlocked_quadrants"]
 
-    rows = len(tiles)
-    cols = len(tiles[0]) if rows > 0 else 0
-
-    has_seeds = any(seeds.get(crop, 0) > 0 for crop in ["WHEAT", "CARROT", "TOMATO", "STRAWBERRY", "MELON"])
-
-    for y in range(rows):
-        for x in range(cols):
-            tile = tiles[y][x]
-
-            # Skip locked tiles for work (but can pass through)
-            if tile == "LOCKED":
+    market = []
+    # selling: throttle to avoid crashing prices; hold cheap/early
+    if day >= g["hoard_days"]:
+        for item, count in shed.items():
+            if item == "FERTILIZER" or count <= 0:
                 continue
+            if prices.get(item, 0) < g["sell_min_price"]:
+                continue
+            market.append(["SELL", item, max(1, int(count * g["sell_frac"]))])
+    if shed.get("FERTILIZER", 0) > 0:
+        market.append(["SELL", "FERTILIZER", shed["FERTILIZER"]])
 
-            dist = abs(x - fx) + abs(y - fy)
-            if dist == 0:
-                continue  # Already here
+    # buying seeds
+    if seeds.get("WHEAT", 0) < g["wheat_seed_target"] and money >= 100:
+        market.append(["BUY_SEED", "WHEAT", min(10, int(money // 10))])
+    if money >= g["carrot_gate"] and seeds.get("CARROT", 0) < 3:
+        market.append(["BUY_SEED", "CARROT", 3])
+    if money >= g["tomato_gate"] and seeds.get("TOMATO", 0) < 2:
+        market.append(["BUY_SEED", "TOMATO", 2])
+    if money >= g["melon_gate"] and seeds.get("MELON", 0) < 2:
+        market.append(["BUY_SEED", "MELON", 2])
 
-            priority = dist  # Lower is better
+    # animals
+    if money >= g["animal_gate"] and shed.get("GOOSE", 0) == 0 and money >= 320:
+        market.append(["BUY_ANIMAL", "GOOSE", 1])
+    if money >= g["cow_gate"] and shed.get("COW", 0) == 0 and money >= 420:
+        market.append(["BUY_ANIMAL", "COW", 1])
 
-            # Unwatered plants are high priority
-            if isinstance(tile, dict) and tile.get("kind") == "PLANT":
-                if not tile.get("watered_today", False):
-                    priority = dist - 100  # Very high priority
-                crop_age = day - tile.get("planted_day", day)
-                crop = tile.get("crop", "WHEAT")
-                if crop_age >= get_first_yield_day(crop) and tile.get("yield_units", 0) > 0:
-                    priority = dist - 200  # Harvest is highest priority
+    # land
+    nq = len(unlocked)
+    if nq < 2 and money >= g["land2_gate"]:
+        market.append(["BUY_LAND"])
+    elif nq < 3 and money >= g["land3_gate"]:
+        market.append(["BUY_LAND"])
+    elif nq < 4 and money >= g["land4_gate"]:
+        market.append(["BUY_LAND"])
 
-            # Empty tiles where we can plant
-            elif tile is None and has_seeds:
-                priority = dist - 50
+    # hire
+    if money >= g["hire_gate"] and me.get("hires_today", 0) < 2:
+        market.append(["HIRE"])
 
-            # Weeds should be cleared
-            elif isinstance(tile, dict) and tile.get("kind") == "WEED":
-                priority = dist - 20
+    market = market[:10]
 
-            # Animals that need feeding
-            elif isinstance(tile, dict) and tile.get("kind") in ("COOP", "PASTURE"):
-                if tile.get("animal") and not tile.get("fed_today", False):
-                    priority = dist - 80
+    farmer_action = _place_or_build(tiles[fy][fx], shed, fx, fy, tiles, seeds, day, money, g)
+    hands = []
+    for (hx, hy) in me.get("hands", []):
+        hands.append(_decide(tiles[hy][hx], tiles, hx, hy, seeds, day, money, g))
 
-            if priority < best_dist:
-                best_dist = priority
-                best_target = (x, y)
-
-    return best_target
-
-
-def move_toward(fx, fy, tx, ty):
-    """Return a movement action toward the target."""
-    dx = tx - fx
-    dy = ty - fy
-
-    # Prefer moving along the longer axis first
-    if abs(dx) >= abs(dy):
-        if dx > 0:
-            return ["EAST"]
-        elif dx < 0:
-            return ["WEST"]
-
-    if dy > 0:
-        return ["SOUTH"]
-    elif dy < 0:
-        return ["NORTH"]
-
-    # Already at target
-    return ["PASS"]
+    return {"farmer": farmer_action, "hands": hands, "market": market}

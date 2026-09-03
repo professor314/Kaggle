@@ -1,6 +1,6 @@
 # Kaggle ML Toolkit — Project Status
 
-*Last updated: 2026-08-31*
+*Last updated: 2026-09-03*
 
 ## Toolkit Status
 
@@ -29,8 +29,8 @@
 | **Contradictory-Watson** | pending | — | kernel v8 | ✅ Full | 🟡 Kernel COMPLETE (0.69 val); submission.csv valid, needs manual web/kernel submit |
 | **LLM-Finetuning** | pending | — | kernel v3 | — | ⚠️ Code Competition |
 | **TPU-Getting-Started** | pending | — | kernel v3 | — | ⚠️ Code Competition |
-| **Kaggriculture** | pending | — | agent | — | ⚠️ Code Competition ($50K) |
-| **RSNA-Knee** | 0.500 (smoke) | — | 2 | ✅ Full | 🟡 Pipeline proven; 2.5D EfficientNet baseline submitted (from scratch, 58 labels) |
+| **Kaggriculture** | **243.7** (agent) | — | 3 | ✅ Full | 🟢 GA-evolved genome agent (23 gens, 6,624 self-play games); beats built-in starter 88–100% |
+| **RSNA-Knee** | **0.924 (AUC)** | — | 3 | ✅ Full | 🟢 Reuse-first: CC0 CoAtNet in our internet-off kernel (0.500→0.533→**0.924**); own MIL next |
 
 ---
 

@@ -130,7 +130,7 @@ prize-eligible.
 | Rules | bilingual keyword + negation miner | 0.607 | — |
 | NLI | mDeBERTa-XNLI zero-shot | 0.556 | — |
 | Best public labels | stevenleehans v4 blend (CC0) | 0.8927 | — |
-| A.1 (reuse) | CC0 raptor CoAtNet, our internet-off kernel | (0.9167 reported) | *pending* |
+| A.1 (reuse) | CC0 raptor CoAtNet, our internet-off kernel | (0.9167 reported) | **0.924** ✅ |
 
 ## Principles this project runs on
 - Prove the boring path before the fun part.
