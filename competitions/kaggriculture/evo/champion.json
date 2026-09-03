@@ -1,0 +1,21 @@
+{
+  "genome": {
+    "wheat_seed_target": 5.351399153338243,
+    "carrot_gate": 1360.176406325152,
+    "tomato_gate": 6000,
+    "melon_gate": 5097.811470328456,
+    "land2_gate": 8000,
+    "land3_gate": 10951.337487587725,
+    "land4_gate": 25000,
+    "animal_gate": 8000,
+    "cow_gate": 5746.118033054801,
+    "sell_frac": 0.4366451997749106,
+    "sell_min_price": 43.431414641947114,
+    "hoard_days": 4.192730867116591,
+    "fertilize": 0.0896318242520942,
+    "care_animals": 0.4675343420700794,
+    "hire_gate": 80875.01483255414,
+    "plant_priority": 0.6985819173145595
+  },
+  "note": "The GA champion currently LIVE on the Kaggriculture leaderboard (LB ~219-243). The ratchet must beat THIS head-to-head to promote."
+}

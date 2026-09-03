@@ -1,0 +1,1 @@
+{"date": "2026-09-03 15:28", "mode": "champion-challenger ratchet", "command": "ratchet.py --pop 24 --gens 12 --eval-games 6 --promote-games 20 --promote-winrate 0.55 -j 12", "generations": 12, "promotions": 7, "total_games": 3912, "total_game_turns": 2816640, "wall_clock_secs": 985.0, "final_pool_size": 10}
