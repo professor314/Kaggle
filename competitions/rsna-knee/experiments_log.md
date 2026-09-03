@@ -118,6 +118,23 @@ against the 58 gold studies each epoch (the honest metric).
 STATUS at session end (2026-09-02): kernel RUNNING (still reading DICOMs; the
 ~1500x6 reads off the mounted FS are the slow part).
 
+### Exp 5 RESULT (2026-09-01): v2 ran, still chance
+1500 studies weak-labeled from reports, EfficientNet trained (loss->0.02), but
+**gold_val_macroAUC ~0.52** across all 6 epochs. More weak labels did NOT help the
+image model learn. Best LB so far: **0.533** (from-scratch image baseline) vs
+**smoke 0.500**. Leaderboard leaders are at **~0.95** — we're near the bottom.
+Conclusion: the image path is stuck at chance; the signal is the reports. Our
+rule-based report miner (0.607 gold) already beats every image attempt.
+
+### Exp 6 (2026-09-01): zero-shot NLI report labeling (FREE, in flight)
+Uploaded `seanconnolly/mdeberta-v3-base-mnli-xnli` (multilingual NLI, ~530MB) as
+a dataset so it runs offline. Kernel `rsna-knee-nli-labels` scores each finding
+as entailment(report -> hypothesis), validates on the 58 gold, and writes
+nli_train_labels.csv for all 4,407 studies. RUNNING at session pause (labeling
+4,407 reports x 12 hypotheses on the T4 is slow).
+Goal: beat the 0.607 rules on gold. If it does, use nli_train_labels.csv as the
+image model's training labels AND consider it may transfer better.
+
 ### NEXT SESSION - resume here
 1. `kaggle kernels status seanconnolly/rsna-knee-v2`
    - COMPLETE -> pull output, read the gold_val_macroAUC per epoch:
