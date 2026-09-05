@@ -40,7 +40,8 @@ Money is the real objective (we start each game with $3,000).
 | 4 | 2026-09-02 | GA run 1 (23 gens, 6,624 games) — best genome baked + submitted | ~3,700–3,994 / 88–100% vs starter | **LB 243.7** ✅ |
 | 5 | 2026-09-03 | Co-evolution (peers+anchors+HoF, ~24k games) | ties incumbent (6/12) | not submitted (no real gain) |
 | 6 | 2026-09-03 | Ratchet (champion-challenger) | gate too loose → ties | not submitted |
-| 7 | 2026-09-03 | **Farm-operator** (units route to nearest work; keep farm full+watered) | **16/16 vs champ, ~$5,524 vs $3,549** | **submitted** ✅ |
+| 7 | 2026-09-03 | **Farm-operator** (units route to nearest work; keep farm full+watered) | **16/16 vs champ, ~$5,524 vs $3,549** | **submitted** ✅ (LB 251.8) |
+| 8 | 2026-09-05 | **Herd engine** (animal-herd strategy from replays; PICKUP+FEED logistics) | **12/0/0 vs farm-operator, ~$41,168 vs $6,080; 8/0/0 vs starter** | **submitted** ✅ (pending) |
 
 **Note on LB scores:** Kaggriculture uses a live skill rating that changes as your
 agent keeps playing the field. The greedy fix and the GA agent were rated ~94 and
@@ -141,10 +142,81 @@ NOW the economics (animals as perpetual engine, melon timing, market selling int
 town demand) can be layered on TOP of a farm that actually operates — and the GA/
 ratchet can tune farm_operator's few thresholds against a proper opponent pool.
 
+## Chapter 11 — Investor (high-risk) tested: capital strategies underperform here
+Built an `investor` agent (bet capital on land + animals + melon). First version
+front-loaded all spending on turn 1 → stranded assets in the shed → deterministic
+$520 loss. Fixed it to STAGE investments (deploy one asset before buying the next,
+keep a cash cushion) → improved to $2,660, but still loses 0/16 to farm_operator
+(~$5,700) with ZERO variance. Combined with animal_engine ($613) and
+disciplined_engine ($2,310), three independent experiments agree: **in a 30-day
+season with a premium market that crashes on gluts, capital-intensive play
+underperforms the simple high-velocity wheat operator.** Land/animal ROI doesn't
+pay back in time; every build/place/feed turn is a turn not running the wheat loop.
+Keeping investor as a GA contender so selection can confirm empirically — but the
+expectation is it gets selected out.
+
+## Chapter 12 — Watching the winners: the animal-herd engine (~$80k, 15x us)
+Got real replays of TOP players (Dmytro Maliarenko vs keiz) — the signal we were
+missing. They finish with **$63k–$88k**; our best (farm_operator) nets ~$5.5k. A
+**~15x gap.** How they do it (consistent across 3 replays):
+- **Big HERD of animals**: 7–14 cows + sheep (+ a goose) by end game. This is the
+  whole engine — milk ($160) + wool ($200) produced continuously.
+- **HIRE ~270–300 times**: hire hands EVERY day to buy the actions needed to feed/
+  care/harvest the herd. Actions are the constraint; they buy labor to beat it.
+- Heavy **CARE** (yield bonus) + **COLLECT_FERTILIZER** (extra sellable) + **BUY_PRODUCT**
+  (buy wheat to feed animals) + constant **SELL**.
+- Money curve: near-broke until ~day 9 (all-in on setup), then EXPLODES ~$2.5k ->
+  ~$16k at day 11 and compounds to $80k. Classic invest-then-exponential.
+- They barely grow crops (a few tomatoes); crops/wheat exist only to bootstrap cash
+  and FEED the animals.
+
+**This overturns Chapter 11.** Capital strategy doesn't "underperform" — it's THE
+game; our earlier attempts just executed it badly (starved animals, no daily hiring).
+farm_operator's tidy wheat loop is a local optimum ~15x below the real ceiling.
+NEW PLAN: build the herd engine properly — bootstrap fast, buy cows aggressively,
+HIRE a hand every day, CARE + collect fertilizer, buy wheat as feed, sell milk/wool
+continuously. Validate against these replays, not our own weak agents.
+
 ### GA generation log (best per generation)
 | Gen | best money | best winrate | mean fitness | secs |
 |---|---|---|---|---|
 | 0 | 3,253 | 33% | 2,242 | 50 |
+
+## Chapter 13 — Building the herd engine: the mechanic everyone missed
+We set out to build the animal-herd engine the replays revealed (ch.12). The first
+two attempts busted the exact way every prior animal agent had — down to $2,072 and
+$558, deterministically. Tracing the game exposed the real reason, and it wasn't
+strategy at all. It was two **logistics mechanics** hidden in the engine source that
+none of our agents (or the theory in ch.8/11) had ever handled:
+
+1. **A bought animal lands in the SHED, not on a tile.** To place it, a unit has to
+   be shed-adjacent, `PICKUP` the animal into *its own inventory*, carry it to an
+   empty matching structure (pasture for cow/sheep, coop for goose), then `PLACE`.
+   Our agents bought cows and built pastures but never picked the cows up — so $400
+   animals sat in the shed forever while the money was gone.
+2. **`FEED` consumes 1 wheat from the FEEDING UNIT'S inventory — not the shed.** So a
+   unit must be *carrying* wheat to feed an animal. Our agents had wheat in the shed
+   and animals in the field and never connected them, so every animal starved in two
+   days (a total loss) and the agent bought replacements until it went broke.
+
+The winning loop is therefore a **carry problem**: units ferry wheat OUT to feed the
+herd and ferry animals OUT to populate it. Once we routed units to (a) grab a wheat
+buffer at the shed and carry it to hungry animals, and (b) grow the herd ONE animal
+at a time and only while the current herd is fully fed (never starve a $400 asset),
+the money curve finally matched the replays: near-broke through the ~day-3-10 setup,
+then it EXPLODES — $300 at day 10 → $2.3k day 11 → $5.2k day 12 → $20k+ by day 30.
+
+**Result: 12/0/0 vs the farm-operator champion, avg $41,168 vs $6,080 (a ~7× money
+edge), and 8/0/0 vs `starter` ($37.8k vs $3.6k).** Verified over 12 games alternating
+seats before submitting. This is the first agent that runs the actual winning
+strategy instead of a local optimum. Submitted as the new agent.
+
+**Big lesson (again): read the engine, not just the rules doc.** The rules *described*
+PICKUP/PLACE and "feed with wheat," but only the source made it unambiguous that both
+flow through per-unit inventory. Three prior chapters of "capital strategies
+underperform" were really "we never fed or placed our animals." Next headroom toward
+the top players' $80k: add sheep (wool $200), buy land for a bigger herd, and add
+CARE discipline + fertilizer collection cadence (fertilizer was their #1 income).
 
 ## Chapter 1 — The submission that wouldn't run
 The first greedy agent errored on Kaggle. The cause was a loader quirk, not the
