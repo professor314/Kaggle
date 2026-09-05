@@ -42,7 +42,8 @@ Money is the real objective (we start each game with $3,000).
 | 6 | 2026-09-03 | Ratchet (champion-challenger) | gate too loose → ties | not submitted |
 | 7 | 2026-09-03 | **Farm-operator** (units route to nearest work; keep farm full+watered) | **16/16 vs champ, ~$5,524 vs $3,549** | **submitted** ✅ (LB 251.8) |
 | 8 | 2026-09-05 | **Herd engine** (animal-herd strategy from replays; PICKUP+FEED logistics) | **12/0/0 vs farm-operator, ~$41,168 vs $6,080; 8/0/0 vs starter** | **submitted** ✅ (LB 472.5) |
-| 9 | 2026-09-05 | **Herd engine v2** — emergency at-risk feeding (zero escapes) | **14/6 (70%) vs v1; 8/0/0 vs starter, avg $45,320** | **submitted** ✅ (pending) |
+| 9 | 2026-09-05 | **Herd engine v2** — emergency at-risk feeding (zero escapes) | **14/6 (70%) vs v1; 8/0/0 vs starter, avg $45,320** | **submitted** ✅ |
+| 10 | 2026-09-05 | **Herd engine v3** — price-aware selling (read the live price curve) | **23/1/6 (77%) vs v2; 8/0/0 vs starter** | **submitted** ✅ (pending) |
 
 **Note on LB scores:** Kaggriculture uses a live skill rating that changes as your
 agent keeps playing the field. The greedy fix and the GA agent were rated ~94 and
@@ -250,6 +251,39 @@ more (sell smarter, grow bigger) when the real money was in not LOSING assets we
 already paid for. Protect the compounding engine first; scale it second. (Next, once
 feeding a bigger herd is solved, land + sheep can come back — but only with the labor
 logistics to service it.)
+
+## Chapter 15 — Selling on the price curve, not a guessed distribution
+Question: can we use economic signals to sell before the glut? The instinct was to
+"learn the price distribution from past games," but the game's own rules make that
+unnecessary — **price is a DETERMINISTIC function of market inventory** (README price
+table), and we can READ `market.prices` + `market.inventory` live every turn. So we
+probed a real game (`evo/market_probe.py`) and each good showed a distinct, exploitable
+pattern:
+
+- **FERTILIZER decays all season** ($100 → ~$10): everyone dumps this free byproduct,
+  so inventory gluts and price collapses. → **sell it ALL immediately; never hold.**
+- **WHEAT & WOOL APPRECIATE** (wheat 25→54, wool 200→249): town shops constantly drain
+  them below equilibrium, so they get *more* valuable over time. → **sell only
+  surplus, prefer selling near the recent high.** (Also: wool holds ~$245 while we
+  barely produce it — confirms sheep are worth adding.)
+- **MILK is the volatile one** (dump → ~$7, recover → ~$78): premium goods crash on
+  gluts but town/shops also consume them, so the price oscillates. → **the one good
+  where timing pays: sell a share proportional to how close the price is to its
+  recent high; hold some when it's depressed.**
+
+Implementation: a small module-level price memory (the agent is otherwise stateless
+between turns; module scope persists for the episode) tracks a slowly-decaying
+recent-high per item. Premium goods sell in full near their high, half at a mediocre
+price, and hold when depressed — unless the shed is filling toward its 100-item cap,
+in which case we dump regardless (a discarded unit is worth $0, worse than any sale).
+
+**Result: 23/1/6 (77%) head-to-head over 30 games vs the escape-fix version, with a
+real money edge ($22.3k vs $17.8k — the earlier naive sell-tweak had been dead-even),
+and still 8/0/0 vs `starter`.** The lesson: we didn't need machine learning on price
+history — the market is a known curve, so the win came from *reading* it (recent-high
+relative timing + per-good behavior) rather than modeling it. The distribution idea
+would only matter for the parts that ARE stochastic (which shops unlock, and the
+opponent's sell timing); those remain future work if we want to push further.
 
 ## Chapter 1 — The submission that wouldn't run
 The first greedy agent errored on Kaggle. The cause was a loader quirk, not the

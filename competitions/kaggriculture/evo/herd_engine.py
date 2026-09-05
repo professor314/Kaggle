@@ -29,6 +29,28 @@ BASE_PRICE = {"WHEAT": 25, "CARROT": 35, "TOMATO": 60, "STRAWBERRY": 120,
 PREMIUM = {"MELON", "STRAWBERRY", "MILK", "WOOL"}
 ANIMAL_COST = {"GOOSE": 300, "COW": 400, "SHEEP": 500}
 
+# --- price memory (module scope persists for the whole episode; the agent is
+#     otherwise stateless between turns). We track a rolling recent-high per item
+#     from the live market feed so we can sell premium goods when the price is
+#     favorable relative to what we've recently seen — reading the deterministic
+#     price curve instead of guessing a distribution. Keyed per player so both
+#     seats in a local self-play game don't clobber each other. ---
+_PRICE_HI = {}     # {player: {item: rolling recent-high price}}
+_PRICE_PREV = {}   # {player: {item: last-seen price}}
+_DECAY = 0.98      # recent-high decays slowly so a one-turn spike doesn't lock us out
+
+
+def _update_price_memory(player, prices):
+    hi = _PRICE_HI.setdefault(player, {})
+    prev = _PRICE_PREV.setdefault(player, {})
+    for item, p in prices.items():
+        if p <= 0:
+            continue
+        h = hi.get(item, p) * _DECAY
+        hi[item] = max(h, p)
+        prev[item] = p
+    return hi, prev
+
 
 def _move_toward(fx, fy, tx, ty):
     dx, dy = tx - fx, ty - fy
@@ -60,6 +82,11 @@ def agent(obs):
     me = obs["farms"][player]
     priv = obs["private"]
     day = obs["day"]
+    # reset per-episode price memory at the start of a game (module scope would
+    # otherwise leak across games sharing a process in local self-play).
+    if obs.get("step", 0) == 0 or day == 0 and obs.get("hour", 1) == 0:
+        _PRICE_HI[player] = {}
+        _PRICE_PREV[player] = {}
     money = me["money"]
     tiles = me["tiles"]
     seeds = priv["seeds"]
@@ -136,25 +163,50 @@ def agent(obs):
         if have < want and money >= 150:
             market.append(["BUY_PRODUCT", "WHEAT", min(want - have, 15)])
 
-    # 2) SELL everything sellable. Fertilizer is the #1 income stream; milk/wool
-    #    the premium payoff. Keep a wheat feed reserve.
+    # 2) PRICE-AWARE SELLING. Live-market observations (evo/market_probe.py) show
+    #    each good behaves differently, and the price is a deterministic function of
+    #    market inventory — so we read it, we don't guess a distribution:
+    #      * FERTILIZER steadily DECAYS all season (everyone dumps this byproduct):
+    #        $100 -> ~$10. Sell it ALL, immediately — waiting only loses money.
+    #      * WHEAT & WOOL APPRECIATE (town shops drain them below equilibrium):
+    #        wheat 25->54, wool 200->249. Sell only surplus, and prefer to sell when
+    #        the price is at/near its recent high.
+    #      * MILK is the volatile one (crashes to ~$7 on a dump, recovers to ~$78):
+    #        sell a share proportional to how close the current price is to its
+    #        recent high. Near the high -> sell most; far below -> hold some.
+    #      * If the shed is filling toward the 100-item cap, sell hard regardless of
+    #        price — a discarded unit is worth $0, which beats any sale >= $1.
+    hi, _prev = _update_price_memory(player, prices)
+    shed_nonfeed = sum(v for k, v in shed.items() if k not in ("WHEAT", "COW", "SHEEP", "GOOSE"))
+    shed_pressure = shed_nonfeed >= 60
+    shed_urgent = shed_nonfeed >= 82
     for item, cnt in shed.items():
         if cnt <= 0 or item in ("COW", "SHEEP", "GOOSE"):
+            continue
+        price = prices.get(item, 0)
+        if item == "FERTILIZER":
+            market.append(["SELL", "FERTILIZER", cnt])                # decaying: dump now
             continue
         if item == "WHEAT":
             reserve = animals * 2 + 4
             surplus = cnt - reserve
             if surplus > 0:
-                market.append(["SELL", "WHEAT", surplus])
+                # appreciating staple: sell surplus, a bit more when price is strong
+                q = surplus if price >= 0.9 * hi.get("WHEAT", price) else max(1, surplus // 2)
+                market.append(["SELL", "WHEAT", q])
             continue
-        price = prices.get(item, 0)
-        if item == "FERTILIZER":
-            market.append(["SELL", "FERTILIZER", cnt])
-        elif item in PREMIUM:
-            if _good_sell(item, price):
-                market.append(["SELL", item, cnt])
+        if item in PREMIUM:
+            ref = hi.get(item, price) or price
+            ratio = price / ref if ref > 0 else 1.0        # 1.0 = at recent high
+            if shed_urgent:
+                market.append(["SELL", item, cnt])                     # avoid discard
+            elif ratio >= 0.85 or price >= 0.9 * BASE_PRICE.get(item, 1):
+                market.append(["SELL", item, cnt])                     # great price: take it
+            elif ratio >= 0.55 or shed_pressure:
+                market.append(["SELL", item, max(1, cnt // 2)])        # ok price: sell half
+            # else: price is poor and we have room -> HOLD for recovery
         else:
-            market.append(["SELL", item, cnt])
+            market.append(["SELL", item, cnt])                         # staples don't crash
 
     # 3) HIRE labor — scale hands with the amount of work (herd + crops). Cost is
     #    fib(hires_today): 1,1,2,3,5,8,... resets daily. Cheap early, harder later.
