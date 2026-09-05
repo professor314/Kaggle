@@ -315,6 +315,34 @@ routing (the profiler showed ~500 CARE + ~500 COLLECT_FERTILIZER/game, well abov
 top players' ~50 — if anything we over-do them, so there's no cheap win there; the
 open lever is feeding logistics C4 to enable a genuinely BIGGER herd, next).
 
+## Chapter 17 — Tournament: the remaining ideas didn't beat v4
+Built the rest of the deterministic research list as candidates and ran a proper
+ROUND-ROBIN tournament (`evo/tournament.py`) — each candidate vs a fixed DIVERSE pool
+(starter, farm_operator, and our own v3/v4 champions), 12-14 games/pairing, both
+seats, ranked by aggregate win rate then money. We do this because we learned
+mirror-match results mislead; the field is diverse.
+
+Results:
+- **C4 — bigger herd + land expansion: REJECTED.** Aggregate 71% (worst). It crushes
+  weak agents but the land buy + bigger herd + longer feeding walks don't pay back in
+  30 days vs strong opponents (17% vs v4). This is the THIRD independent time
+  expansion has lost — the tight, fully-utilized single-quadrant herd is the right
+  scale for a 30-day season. We fixed the land trigger so it DID expand (herd 11->13),
+  and it was still worse. Filed as settled: don't expand.
+- **B2 — opponent-flood detection (sell before a glut using inventory deltas):
+  REJECTED.** Aggregate 70% vs v4's 81%. The +2/turn inventory-rise trigger fires on
+  our own prior sells and dumps premium goods prematurely, underperforming v4's
+  metered selling. The signal is real but the threshold is too crude; a better version
+  would subtract our own known sells first (future work).
+- **v4 (balanced herd) — WINNER, 81-89% aggregate, ~$44-49k vs the field.**
+
+Conclusion: after building B1 (rejected), C4 (rejected), B2 (rejected), and C3
+(shipped as v4), **v4 remains the objective best** and is already the submitted agent.
+Nothing new to submit — re-submitting would be the identical v4. The clean balanced
+herd beats every "more sophisticated" variant. Remaining open ideas (A2 demand-aware
+production, a refined B2 that nets out our own sells, D1 GA-tuning vs a proper pool)
+are for a future session.
+
 ## Chapter 1 — The submission that wouldn't run
 The first greedy agent errored on Kaggle. The cause was a loader quirk, not the
 strategy: kaggle-environments picks the **last callable defined in your file** as

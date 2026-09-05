@@ -192,13 +192,21 @@ uncertain vs. the strong hand-built + GA baseline; park it unless C/B plateau.
    diversifying premium sales lifts total revenue and the money floor.
 3. **C1 + C2** — checked: routing already does ~500 CARE + ~500 COLLECT_FERTILIZER/game
    (more than the top players), so no cheap win here. Skip unless we cut them back.
-4. **C4 → bigger herd + land** (NEXT, the structural ceiling) — feeding logistics so a
-   larger/spread herd doesn't starve; then re-attempt land + herd > 15.
-5. **B2** opponent modeling from inventory deltas (beat specific strong opponents;
-   also addresses the mirror-match weakness sheep exposed).
-6. **A2** demand-aware production from `unlocked_shops`.
-7. **D1** GA-tune the knobs vs a proper pool; verify large-sample before shipping.
+4. ~~**C4 → bigger herd + land**~~ — **TRIED, REJECTED (2026-09-05).** Tournament
+   aggregate 71% (worst); land + bigger herd doesn't pay back in 30 days vs strong
+   opponents (3rd time expansion has lost). Single-quadrant tight herd is the right
+   scale. Settled: don't expand.
+5. ~~**B2** opponent-flood detection~~ — **TRIED, REJECTED (2026-09-05).** 70% vs v4's
+   81%; the inventory-rise trigger fires on our own sells and dumps prematurely. A
+   REFINED B2 that subtracts our own known sells before flagging a flood is still
+   open and could work.
+6. **A2** demand-aware production from `unlocked_shops` (OPEN — not yet tried).
+7. **D1** GA-tune the knobs vs a proper pool; verify large-sample before shipping (OPEN).
 8. Park A1 (seed fingerprinting), D2/D3 unless the above plateau.
+
+**Current best = v4 (balanced herd).** Verified via `evo/tournament.py` round-robin vs
+a diverse pool (starter, farm_operator, v3): v4 wins 81-89% aggregate at ~$44-49k.
+B1/C4/B2 all made it worse; C3 (balanced herd) was the only shipped improvement.
 
 Each project: implement behind a benchmark, verify head-to-head vs the current
 champion over ≥20-30 games (both seats) BEFORE submitting, and log the result in
