@@ -183,14 +183,22 @@ uncertain vs. the strong hand-built + GA baseline; park it unless C/B plateau.
 ---
 
 ## Suggested order (value / effort)
-1. **B1** exact next-price selling (port the price formula) — turns our best current
-   lever into math. Deterministic, high value, low risk.
-2. **C1 + C2** fertilizer discipline + CARE ROI — cheap, compounding, deterministic.
-3. **A2** demand-aware production/selling from `unlocked_shops`.
-4. **C4 → C3** feeding logistics, THEN balanced herd + land (the structural ceiling).
-5. **B2** opponent modeling from inventory deltas (beat specific strong opponents).
-6. **D1** GA-tune the knobs vs a proper pool; verify large-sample before shipping.
-7. Park A1 (seed fingerprinting), D2/D3 unless the above plateau.
+1. ~~**B1** exact next-price selling~~ — **TRIED, REJECTED (2026-09-05).** Ported the
+   exact price formula + optimal_sell_qty; it LOST head-to-head (10-35%) because
+   against an opponent, selling first beats holding for a better price. Kept the price
+   model in the agent for C-series math; sell gating stays on the recent-high heuristic.
+2. ~~**C3** balanced herd (cows+sheep+geese)~~ — **SHIPPED as v4 (2026-09-05).** 8/0/0
+   vs diverse opponents at ~$49-52k (was $37-45k). Milk+wool crash independently, so
+   diversifying premium sales lifts total revenue and the money floor.
+3. **C1 + C2** — checked: routing already does ~500 CARE + ~500 COLLECT_FERTILIZER/game
+   (more than the top players), so no cheap win here. Skip unless we cut them back.
+4. **C4 → bigger herd + land** (NEXT, the structural ceiling) — feeding logistics so a
+   larger/spread herd doesn't starve; then re-attempt land + herd > 15.
+5. **B2** opponent modeling from inventory deltas (beat specific strong opponents;
+   also addresses the mirror-match weakness sheep exposed).
+6. **A2** demand-aware production from `unlocked_shops`.
+7. **D1** GA-tune the knobs vs a proper pool; verify large-sample before shipping.
+8. Park A1 (seed fingerprinting), D2/D3 unless the above plateau.
 
 Each project: implement behind a benchmark, verify head-to-head vs the current
 champion over ≥20-30 games (both seats) BEFORE submitting, and log the result in

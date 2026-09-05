@@ -43,7 +43,8 @@ Money is the real objective (we start each game with $3,000).
 | 7 | 2026-09-03 | **Farm-operator** (units route to nearest work; keep farm full+watered) | **16/16 vs champ, ~$5,524 vs $3,549** | **submitted** ✅ (LB 251.8) |
 | 8 | 2026-09-05 | **Herd engine** (animal-herd strategy from replays; PICKUP+FEED logistics) | **12/0/0 vs farm-operator, ~$41,168 vs $6,080; 8/0/0 vs starter** | **submitted** ✅ (LB 472.5) |
 | 9 | 2026-09-05 | **Herd engine v2** — emergency at-risk feeding (zero escapes) | **14/6 (70%) vs v1; 8/0/0 vs starter, avg $45,320** | **submitted** ✅ |
-| 10 | 2026-09-05 | **Herd engine v3** — price-aware selling (read the live price curve) | **23/1/6 (77%) vs v2; 8/0/0 vs starter** | **submitted** ✅ (pending) |
+| 10 | 2026-09-05 | **Herd engine v3** — price-aware selling (read the live price curve) | **23/1/6 (77%) vs v2; 8/0/0 vs starter** | **submitted** ✅ |
+| 11 | 2026-09-05 | **Herd engine v4** — balanced herd (cows+sheep+geese) | **8/0/0 vs starter (avg $49k) & vs strategy agents (avg $52k)** | **submitted** ✅ (pending) |
 
 **Note on LB scores:** Kaggriculture uses a live skill rating that changes as your
 agent keeps playing the field. The greedy fix and the GA agent were rated ~94 and
@@ -284,6 +285,35 @@ history — the market is a known curve, so the win came from *reading* it (rece
 relative timing + per-good behavior) rather than modeling it. The distribution idea
 would only matter for the parts that ARE stochastic (which shops unlock, and the
 opponent's sell timing); those remain future work if we want to push further.
+
+## Chapter 16 — Doing the deterministic research: what the code actually rewards
+We read the engine source and listed every deterministic edge (`RESEARCH_IDEAS.md`),
+then implemented them and let benchmarks decide. Two clear lessons:
+
+**B1 — exact next-price selling: TRIED, REJECTED.** We ported the engine's exact
+`market_price(item, inventory)` and wrote `optimal_sell_qty` to sell each good only
+down to a min-price floor (holding the rest for when town demand lifts the price).
+It LOST head-to-head (10% at a 55%-base floor, 35% even tuned aggressive). The reason
+is the same two-player truth we keep meeting: **against an opponent, selling FIRST
+beats holding for a better price — they take the price you wait for.** So the simple
+recent-high heuristic (v3) is what we ship; the exact price model is kept in the file
+for the income-side math but not used to gate sells. (A good negative result: it
+answers "shouldn't we hold for higher prices?" with a measured no.)
+
+**C3 — balanced herd (cows + sheep + geese): SHIPPED.** The engine's constants make
+the case: milk (T=122) and wool (T=105) crash INDEPENDENTLY, so a herd that produces
+both spreads sales across two premium markets and neither floods as fast. We buy a
+couple geese to bootstrap, then keep cows and sheep roughly balanced. Result: against
+DIVERSE opponents (starter, farm_operator) it jumps to **8/0/0 at ~$49-52k** (pure-cow
+v3 was ~$37-45k) with a much higher money floor ($35k vs $12k). Against its own mirror
+(another herd bot flooding the same milk) it's only ~35% — but both agents' money
+RISES, and the real leaderboard is the diverse field, not a self-mirror. Verified
+across starter + strategy agents before submitting.
+
+Fertilizer discipline (C1) and CARE cadence (C2) are already exercised heavily by the
+routing (the profiler showed ~500 CARE + ~500 COLLECT_FERTILIZER/game, well above the
+top players' ~50 — if anything we over-do them, so there's no cheap win there; the
+open lever is feeding logistics C4 to enable a genuinely BIGGER herd, next).
 
 ## Chapter 1 — The submission that wouldn't run
 The first greedy agent errored on Kaggle. The cause was a loader quirk, not the

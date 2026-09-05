@@ -23,11 +23,82 @@
 # LOADER RULE: kaggle-environments picks the LAST callable at module scope, so
 # `agent()` is LAST; every helper is above it.
 
+import math
+
 CROP_FIRST_YIELD = {"WHEAT": 2, "CARROT": 4, "TOMATO": 5, "STRAWBERRY": 6, "MELON": 8}
 BASE_PRICE = {"WHEAT": 25, "CARROT": 35, "TOMATO": 60, "STRAWBERRY": 120,
               "MELON": 250, "EGG": 50, "MILK": 160, "WOOL": 200, "FERTILIZER": 100}
 PREMIUM = {"MELON", "STRAWBERRY", "MILK", "WOOL"}
 ANIMAL_COST = {"GOOSE": 300, "COW": 400, "SHEEP": 500}
+
+# --- EXACT MARKET MODEL (ported verbatim from the engine's kaggriculture.py) ---
+# The sell price is a DETERMINISTIC function of market inventory, so we don't guess:
+# we compute the exact price we'd get for each unit and stop selling before we crash
+# the price below a floor we choose. price(inv) = base +/- amp * f(|inv - I0|).
+MARKET_I0 = 10000
+PRICE_FLOOR = 1
+HINGE_GAIN = 8.0
+MARKET_PARAMS = {
+    "WHEAT":      {"base":  25, "I0": MARKET_I0, "T": 400, "below_func": "sqrt",   "below_target": 0.80, "above_func": "log",    "above_target": 0.20},
+    "CARROT":     {"base":  35, "I0": MARKET_I0, "T": 450, "below_func": "hinge",  "below_target": 1.00, "above_func": "sqrt",   "above_target": 0.70},
+    "TOMATO":     {"base":  60, "I0": MARKET_I0, "T": 200, "below_func": "hinge",  "below_target": 0.40, "above_func": "sqrt",   "above_target": 0.60},
+    "STRAWBERRY": {"base": 120, "I0": MARKET_I0, "T": 100, "below_func": "sqrt",   "below_target": 0.70, "above_func": "linear", "above_target": 1.60},
+    "MELON":      {"base": 250, "I0": MARKET_I0, "T": 300, "below_func": "log",    "below_target": 0.20, "above_func": "sq",     "above_target": 3.60},
+    "EGG":        {"base":  50, "I0": MARKET_I0, "T": 332, "below_func": "hinge",  "below_target": 0.40, "above_func": "log",    "above_target": 0.20},
+    "MILK":       {"base": 160, "I0": MARKET_I0, "T": 122, "below_func": "sqrt",   "below_target": 0.60, "above_func": "linear", "above_target": 1.60},
+    "WOOL":       {"base": 200, "I0": MARKET_I0, "T": 105, "below_func": "log",    "below_target": 0.20, "above_func": "sq",     "above_target": 3.20},
+    "FERTILIZER": {"base": 100, "I0": MARKET_I0, "T": 200, "below_func": "linear", "below_target": 0.40, "above_func": "linear", "above_target": 0.40},
+}
+
+
+def _shape(func, x, T=None):
+    x = max(0.0, x)
+    if func == "linear": return x
+    if func == "sq":     return x * x
+    if func == "sqrt":   return math.sqrt(x)
+    if func == "log":    return math.log(1.0 + x)
+    if func == "log10":  return math.log10(1.0 + x)
+    if func == "hinge":
+        if not T or T <= 0:
+            return x
+        u = x / T
+        return u + HINGE_GAIN * max(0.0, u - 1.0) ** 2
+    return x
+
+
+def market_price(item, inventory):
+    p = MARKET_PARAMS.get(item)
+    if not p:
+        return PRICE_FLOOR
+    base, I0, T = p["base"], p["I0"], p["T"]
+    if inventory < I0:
+        amp = p["below_target"] * base / _shape(p["below_func"], T, T)
+        price = base + amp * _shape(p["below_func"], I0 - inventory, T)
+    else:
+        amp = p["above_target"] * base / _shape(p["above_func"], T, T)
+        price = base - amp * _shape(p["above_func"], inventory - I0, T)
+    return max(PRICE_FLOOR, int(round(price)))
+
+
+def optimal_sell_qty(item, inventory, have, min_price):
+    """How many units to sell now so no unit sells below `min_price`.
+    Selling a unit at price > 1 adds 1 to inventory (engine rule), which lowers the
+    next unit's price. We simulate unit-by-unit and stop when the next unit would
+    fall below min_price. Returns (qty, revenue). Fertilizer/staples pass min_price=0
+    to sell everything. NOTE: the opponent may also be selling concurrently, so this
+    is our unilateral optimum; we still cap to `have`."""
+    inv = inventory
+    qty = 0
+    revenue = 0
+    for _ in range(have):
+        price = market_price(item, inv)
+        if price < min_price:
+            break
+        revenue += price
+        qty += 1
+        if price > PRICE_FLOOR:
+            inv += 1          # this unit raised supply, lowering the next price
+    return qty, revenue
 
 # --- price memory (module scope persists for the whole episode; the agent is
 #     otherwise stateless between turns). We track a rolling recent-high per item
@@ -176,6 +247,10 @@ def agent(obs):
     #        recent high. Near the high -> sell most; far below -> hold some.
     #      * If the shed is filling toward the 100-item cap, sell hard regardless of
     #        price — a discarded unit is worth $0, which beats any sale >= $1.
+    #  NOTE: we tried an EXACT next-price optimizer here (B1, using market_price/
+    #  optimal_sell_qty) and it LOST head-to-head — against a competitor, selling
+    #  first beats holding for a better price, so the recent-high heuristic below is
+    #  what we ship. The exact model is kept above for the income-side projects.
     hi, _prev = _update_price_memory(player, prices)
     shed_nonfeed = sum(v for k, v in shed.items() if k not in ("WHEAT", "COW", "SHEEP", "GOOSE"))
     shed_pressure = shed_nonfeed >= 60
@@ -191,22 +266,20 @@ def agent(obs):
             reserve = animals * 2 + 4
             surplus = cnt - reserve
             if surplus > 0:
-                # appreciating staple: sell surplus, a bit more when price is strong
                 q = surplus if price >= 0.9 * hi.get("WHEAT", price) else max(1, surplus // 2)
                 market.append(["SELL", "WHEAT", q])
             continue
         if item in PREMIUM:
             ref = hi.get(item, price) or price
-            ratio = price / ref if ref > 0 else 1.0        # 1.0 = at recent high
+            ratio = price / ref if ref > 0 else 1.0
             if shed_urgent:
-                market.append(["SELL", item, cnt])                     # avoid discard
+                market.append(["SELL", item, cnt])
             elif ratio >= 0.85 or price >= 0.9 * BASE_PRICE.get(item, 1):
-                market.append(["SELL", item, cnt])                     # great price: take it
+                market.append(["SELL", item, cnt])
             elif ratio >= 0.55 or shed_pressure:
-                market.append(["SELL", item, max(1, cnt // 2)])        # ok price: sell half
-            # else: price is poor and we have room -> HOLD for recovery
+                market.append(["SELL", item, max(1, cnt // 2)])
         else:
-            market.append(["SELL", item, cnt])                         # staples don't crash
+            market.append(["SELL", item, cnt])
 
     # 3) HIRE labor — scale hands with the amount of work (herd + crops). Cost is
     #    fib(hires_today): 1,1,2,3,5,8,... resets daily. Cheap early, harder later.
@@ -223,14 +296,23 @@ def agent(obs):
     # 4) BUY ANIMALS — grow the herd ONE at a time, only when the current herd is
     #    fully fed (nothing starving) and no animal is still waiting to be placed.
     #    This prevents the buy-and-starve bleed that killed every prior attempt.
+    #    C3 (deterministic): a BALANCED herd (cows for milk + sheep for wool) beats
+    #    all-cow, because milk (T=122) and wool (T=105) crash INDEPENDENTLY — spreading
+    #    sales across two premium markets means neither floods as fast, so total
+    #    revenue per turn is higher. A few geese early bootstrap cheap daily eggs.
+    n_cow = sum(1 for row in tiles for t in row
+                if isinstance(t, dict) and t.get("animal") == "COW")
+    n_sheep = sum(1 for row in tiles for t in row
+                  if isinstance(t, dict) and t.get("animal") == "SHEEP")
     HERD_TARGET = 15
     herd_ok = (len(feed_needed) == 0) and (unplaced == 0)
     if animals + unplaced < HERD_TARGET and herd_ok and day >= 1:
-        # need a spare unit-action to place it this/next turn
-        if money >= ANIMAL_COST["COW"] + 300:
+        if animals < 2 and money >= ANIMAL_COST["GOOSE"] + 200:
+            market.append(["BUY_ANIMAL", "GOOSE", 1])           # cheap bootstrap engine
+        elif n_sheep < n_cow and animals >= 4 and money >= ANIMAL_COST["SHEEP"] + 400:
+            market.append(["BUY_ANIMAL", "SHEEP", 1])           # balance toward wool
+        elif money >= ANIMAL_COST["COW"] + 300:
             market.append(["BUY_ANIMAL", "COW", 1])
-        elif money >= ANIMAL_COST["GOOSE"] + 200 and animals < 3:
-            market.append(["BUY_ANIMAL", "GOOSE", 1])
 
     # 5) SEEDS — small wheat supply to farm bootstrap cash / early feed.
     want_seed = 4 if day < 6 else 2
