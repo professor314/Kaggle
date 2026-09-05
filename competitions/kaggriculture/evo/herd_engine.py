@@ -74,6 +74,7 @@ def agent(obs):
     # --- classify every tile once ---
     harvestable, thirsty, empty, weeds = [], [], [], []
     feed_needed, care_needed, fert_ready, animal_harvest = [], [], [], []
+    at_risk = []   # animals that escape if not fed TODAY (consecutive_unfed >= 1)
     empty_coops, empty_pastures = [], []
     animals = 0
     for y in range(rows):
@@ -99,6 +100,10 @@ def agent(obs):
                         animals += 1
                         if not t.get("fed_today", False):
                             feed_needed.append((x, y))
+                            # one miss already banked -> a second miss today = ESCAPE
+                            # (total loss of a $400+ asset). Emergency-feed these.
+                            if t.get("consecutive_unfed", 0) >= 1:
+                                at_risk.append((x, y))
                         if not t.get("cared_today", False):
                             care_needed.append((x, y))
                         if t.get("fertilizer_available"):
@@ -246,6 +251,16 @@ def agent(obs):
         # ---- feed the animal we're standing on (if we carry wheat) ----
         if here in feed_needed and my_wheat > 0:
             return ["FEED"]
+        # ---- EMERGENCY: an at-risk animal (fed miss already) escapes tonight if
+        #      not fed. If we carry wheat, drop everything and run to the nearest
+        #      one. This is the #1 compounding leak — every escape is a lost $400+
+        #      asset plus all its future milk/wool. ----
+        if my_wheat > 0 and at_risk:
+            tgt = _nearest(x, y, at_risk)
+            if tgt and tgt != here:
+                mv = _move_toward(x, y, tgt[0], tgt[1])
+                if mv:
+                    return mv
         # ---- other upkeep/production on the current tile ----
         if here in thirsty:
             return ["WATER"]
@@ -277,7 +292,7 @@ def agent(obs):
                     return mv
 
         # ---- if animals need feeding and we have no wheat, grab a buffer ----
-        if feed_deficit[0] > 0 and my_wheat == 0:
+        if (feed_deficit[0] > 0 or at_risk) and my_wheat == 0:
             avail = wheat_shed - picked_wheat[0]
             if avail > 0:
                 if here in shed_tiles:

@@ -41,7 +41,8 @@ Money is the real objective (we start each game with $3,000).
 | 5 | 2026-09-03 | Co-evolution (peers+anchors+HoF, ~24k games) | ties incumbent (6/12) | not submitted (no real gain) |
 | 6 | 2026-09-03 | Ratchet (champion-challenger) | gate too loose → ties | not submitted |
 | 7 | 2026-09-03 | **Farm-operator** (units route to nearest work; keep farm full+watered) | **16/16 vs champ, ~$5,524 vs $3,549** | **submitted** ✅ (LB 251.8) |
-| 8 | 2026-09-05 | **Herd engine** (animal-herd strategy from replays; PICKUP+FEED logistics) | **12/0/0 vs farm-operator, ~$41,168 vs $6,080; 8/0/0 vs starter** | **submitted** ✅ (pending) |
+| 8 | 2026-09-05 | **Herd engine** (animal-herd strategy from replays; PICKUP+FEED logistics) | **12/0/0 vs farm-operator, ~$41,168 vs $6,080; 8/0/0 vs starter** | **submitted** ✅ (LB 472.5) |
+| 9 | 2026-09-05 | **Herd engine v2** — emergency at-risk feeding (zero escapes) | **14/6 (70%) vs v1; 8/0/0 vs starter, avg $45,320** | **submitted** ✅ (pending) |
 
 **Note on LB scores:** Kaggriculture uses a live skill rating that changes as your
 agent keeps playing the field. The greedy fix and the GA agent were rated ~94 and
@@ -217,6 +218,38 @@ flow through per-unit inventory. Three prior chapters of "capital strategies
 underperform" were really "we never fed or placed our animals." Next headroom toward
 the top players' $80k: add sheep (wool $200), buy land for a bigger herd, and add
 CARE discipline + fertilizer collection cadence (fertilizer was their #1 income).
+
+## Chapter 14 — Stopping the leak: no animal ever starves
+The herd engine (ch.13) hit LB 472.5 (up from 251.8), but profiling it against the
+top players (`evo/profile_agent.py`, `evo/analyze_top.py`) showed we still trailed
+their $80k. We chased two hypotheses and let the data pick the winner:
+
+- **Metered selling** (trickle premium goods to protect the price): looked great in
+  a single trace ($7.6k → $47.5k) but LOST head-to-head (25-44% vs v1). Against a
+  real opponent, whoever sells FIRST gets the high price before the glut — hoarding
+  just hands them the good prices. Reverted.
+- **Land + sheep expansion** (bigger herd): made it WORSE. A herd spread across two
+  quadrants outran the units' ability to feed it, so animals starved on the far
+  tiles — the ch.8 "action budget" failure returning. Reverted.
+
+The actual leak was subtler and measurable: `evo/count_escapes.py` showed the herd
+**peaks at 10-12 but ends at 7-8 — we lose 2-4 animals per game to starvation.** Each
+escaped cow is a $400 asset plus all its future milk gone, and game-to-game money
+variance tracked almost exactly with how many animals we kept alive.
+
+Fix: **emergency at-risk feeding.** Any animal with `consecutive_unfed >= 1` (one
+miss already banked) escapes tonight if not fed, so the moment a unit is carrying
+wheat it drops all other work and runs to the nearest at-risk animal; units with no
+wheat urgently fetch a buffer from the shed for them. Result: **zero escapes** — every
+game now ends with the full herd alive — and **14/6 (70%) head-to-head vs the
+submitted v1**, 8/0/0 vs `starter` at avg $45,320 (max $67,864, into the top-player
+range). Verified over 20 games alternating seats before submitting.
+
+**Lesson: the highest-value fix was defensive, not offensive.** We kept trying to earn
+more (sell smarter, grow bigger) when the real money was in not LOSING assets we'd
+already paid for. Protect the compounding engine first; scale it second. (Next, once
+feeding a bigger herd is solved, land + sheep can come back — but only with the labor
+logistics to service it.)
 
 ## Chapter 1 — The submission that wouldn't run
 The first greedy agent errored on Kaggle. The cause was a loader quirk, not the
