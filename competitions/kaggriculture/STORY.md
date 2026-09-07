@@ -44,7 +44,8 @@ Money is the real objective (we start each game with $3,000).
 | 8 | 2026-09-05 | **Herd engine** (animal-herd strategy from replays; PICKUP+FEED logistics) | **12/0/0 vs farm-operator, ~$41,168 vs $6,080; 8/0/0 vs starter** | **submitted** ✅ (LB 472.5) |
 | 9 | 2026-09-05 | **Herd engine v2** — emergency at-risk feeding (zero escapes) | **14/6 (70%) vs v1; 8/0/0 vs starter, avg $45,320** | **submitted** ✅ |
 | 10 | 2026-09-05 | **Herd engine v3** — price-aware selling (read the live price curve) | **23/1/6 (77%) vs v2; 8/0/0 vs starter** | **submitted** ✅ |
-| 11 | 2026-09-05 | **Herd engine v4** — balanced herd (cows+sheep+geese) | **8/0/0 vs starter (avg $49k) & vs strategy agents (avg $52k)** | **submitted** ✅ (pending) |
+| 11 | 2026-09-05 | **Herd engine v4** — balanced herd (cows+sheep+geese) | **8/0/0 vs starter (avg $49k) & vs strategy agents (avg $52k)** | **submitted** ✅ (live champion) |
+| 12 | 2026-09-05 | 30-replay meta analysis + genome-branch movement layer (meta-fit genome) | ~$3.8k; **11/12 vs old GA champ but 0/12 vs herd v4** | not submitted (would regress; genome branch is a dead end) |
 
 **Note on LB scores:** Kaggriculture uses a live skill rating that changes as your
 agent keeps playing the field. The greedy fix and the GA agent were rated ~94 and
@@ -342,6 +343,42 @@ Nothing new to submit — re-submitting would be the identical v4. The clean bal
 herd beats every "more sophisticated" variant. Remaining open ideas (A2 demand-aware
 production, a refined B2 that nets out our own sells, D1 GA-tuning vs a proper pool)
 are for a future session.
+
+## Chapter 18 — Mining 30 top-player replays, and a costly wrong turn
+We downloaded a batch of top-player replay JSONs to learn from (the download had
+stalled twice and hung the IDE; we set it aside — 30 valid replays were already on
+disk, 5 truncated ones quarantined in `replays/corrupt/`). Two analysis scripts
+(`evo/analyze_top.py`, `evo/analyze_ops.py`) were repointed at `../replays` and
+hardened to skip unreadable files; on Windows they need `PYTHONIOENCODING=utf-8`
+because some team names are CJK.
+
+**What the replays say the meta is:** top players finish ~$124k avg (best
+~$150-190k). Signature: labor-heavy (~285 HIRE/game, ramping to ~12/day),
+FERTILIZER is the #1 sold commodity (6,119) >> WHEAT > MILK > WOOL > STRAWBERRY,
+melon ignored; two early land buys (~day 6 and ~day 11), money inflects ~day 9-10.
+Persisted to `META_ANALYSIS.md`, plus a `STRATEGY.md` runbook (env location, the
+opponents/ratchet design, and the submission workflow).
+
+**The wrong turn (an honest negative result):** we anchored on `evo/champion.json`
+— an OLD ~$4k GA agent — instead of reading this very file first. We "discovered"
+that the genome agent (`genome_agent.py`) has no unit movement (hands sit idle on
+the shed corner), added a movement + task-assignment layer and a meta-fit genome,
+and got it to ~$3.8k — beating that old GA champion 11/12. Then we checked it
+against the ACTUAL live champion, the **herd engine v4** (`evo/herd_engine.py`):
+**it lost 0/12** (meta ~$3,837; herd engine beats `starter` 12/12 at ~$47,667).
+
+So the whole `genome_agent.py` branch is a dead end already surpassed back in
+Chapters 10-17 — movement, a balanced herd, and price-curve selling all shipped
+weeks ago. **Nothing was submitted** (submitting would have dropped us from LB
+~472 toward ~243), which is the correct call per our own rule: only submit a
+verified head-to-head gain over the current champion.
+
+**Lessons:** (1) READ STORY.md before touching code — the champion is
+`herd_engine.py`, not `evo/champion.json`; both docs now say so up top. (2) The
+download hang never actually blocked analysis; 30 replays were plenty. (3) Real
+remaining headroom is still the Chapter 17 list (A2 demand-aware production, a
+refined B2 sell that nets out our own sells, D1 GA-tune vs a proper pool) — built
+on the herd engine, not the genome branch.
 
 ## Chapter 1 — The submission that wouldn't run
 The first greedy agent errored on Kaggle. The cause was a loader quirk, not the

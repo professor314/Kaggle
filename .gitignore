@@ -49,3 +49,16 @@ scripts/*.log
 scripts/*.err
 
 competitions/*/artifacts_*/
+
+# --- Big data / weights / regenerable outputs (local-only; not git, not Drive) ---
+competitions/*/weights/
+competitions/*/nli_model/
+competitions/*/replays/
+competitions/*/lb/
+competitions/*/lb2/
+competitions/*/evo/state_tourney/
+competitions/*/evo/*_out.txt
+_nli_ds/
+_nlilabels_ds/
+competitions/*/kernel_eval/
+scripts/auc.txt

@@ -469,10 +469,159 @@ def farm_operator(obs):
     return {"farmer": farmer, "hands": hands, "market": market}
 
 
+# ============================================================================
+# 6) INVESTOR — high risk / high reward. Bets starting capital fast on the
+#    highest-ROI compounding assets (land + animals + melon), accepting bust
+#    risk. Uses the OPERATOR routing (units move to work) so what it buys is
+#    actually maintained — otherwise it repeats the $613 starvation failure.
+#    Upside: land + a herd of animals = perpetual income far above the wheat loop.
+# ============================================================================
+def investor(obs):
+    me, priv = _me(obs)
+    day = obs["day"]; money = me["money"]
+    tiles = me["tiles"]; seeds = priv["seeds"]; shed = priv["shed"]
+    prices = obs["market"]["prices"]; nq = len(me["unlocked_quadrants"])
+    rows = len(tiles); cols = len(tiles[0]) if rows else 0
+    n_units = 1 + len(me.get("hands", []))
+
+    harvestable, thirsty, empty, weeds = [], [], [], []
+    coops_empty, pastures_empty, animals = [], [], 0
+    for y in range(rows):
+        for x in range(cols):
+            t = tiles[y][x]
+            if t == "LOCKED":
+                continue
+            if t is None:
+                empty.append((x, y))
+            elif isinstance(t, dict):
+                k = t.get("kind")
+                if k == "PLANT":
+                    crop = t.get("crop", "WHEAT")
+                    age = day - t.get("planted_day", day)
+                    if age >= CROP_FIRST_YIELD.get(crop, 2) and t.get("yield_units", 0) > 0:
+                        harvestable.append((x, y))
+                    elif not t.get("watered_today", False):
+                        thirsty.append((x, y))
+                elif k == "WEED":
+                    weeds.append((x, y))
+                elif k in ("COOP", "PASTURE"):
+                    if t.get("animal"):
+                        animals += 1
+                        if not t.get("fed_today", False):
+                            thirsty.append((x, y))      # feeding = upkeep work
+                    elif k == "COOP":
+                        coops_empty.append((x, y))
+                    else:
+                        pastures_empty.append((x, y))
+
+    # --- STAGED aggressive investment: bet big but SEQUENTIALLY. Only buy the
+    #     next asset once the previous one is DEPLOYED (placed + producing) and we
+    #     still hold a cash cushion to feed it. Front-loading everything on turn 1
+    #     strands assets in the shed and busts (the old bug). ---
+    market = []
+    unplaced_animal = shed.get("COW", 0) or shed.get("SHEEP", 0) or shed.get("GOOSE", 0)
+    empty_structs = len(pastures_empty) + len(coops_empty)
+    CUSHION = 250                                    # keep enough to feed/recover
+    feed_capacity = n_units * 4
+
+    # always keep the wheat loop alive (cash + feed) — this is the safety net
+    if seeds.get("WHEAT", 0) < 4 and money >= 60:
+        market.append(["BUY_SEED", "WHEAT", 4])
+    if animals and shed.get("WHEAT", 0) < 5 and money >= CUSHION + 100:
+        market.append(["BUY_PRODUCT", "WHEAT", 4])
+
+    # only invest further if nothing is waiting to be deployed and we have cushion
+    can_invest = (not unplaced_animal) and empty_structs == 0 and money >= CUSHION
+    if can_invest:
+        # 1) get the FIRST animal engine running before anything else
+        if animals == 0 and money >= 700 + CUSHION:
+            market.append(["BUY_ANIMAL", "GOOSE", 1])          # cheapest engine to start
+        # 2) once we have income + a free unit-action, grow the herd one at a time
+        elif animals < feed_capacity and money >= 900 + CUSHION:
+            market.append(["BUY_ANIMAL", "COW", 1])
+        # 3) buy land only when the current land is fully worked and we're flush
+        elif nq < 2 and money >= 1500 + CUSHION and len(empty) <= 1:
+            market.append(["BUY_LAND"])
+        # 4) melon jackpot as a side bet when flush
+        elif money >= 400 + CUSHION and seeds.get("MELON", 0) < 2:
+            market.append(["BUY_SEED", "MELON", 2])
+    # hire when the herd/farm needs more hands than we have (actions are the constraint)
+    if money >= 800 + CUSHION and me.get("hires_today", 0) < 2 and \
+            (animals >= n_units * 3 or len(thirsty) + len(harvestable) > n_units * 3):
+        market.append(["HIRE"])
+    # sells: premium metered, staples freely
+    for item, cnt in shed.items():
+        if cnt <= 0 or item in ("COW", "SHEEP", "GOOSE"):
+            continue
+        price = prices.get(item, 0)
+        if item == "FERTILIZER":
+            market.append(["SELL", "FERTILIZER", cnt])
+        elif item == "MELON":
+            if price >= 130:
+                market.append(["SELL", "MELON", min(2, cnt)])
+        elif item in PREMIUM:
+            if price >= 0.6 * BASE_PRICE.get(item, 1):
+                market.append(["SELL", item, max(1, cnt // 2)])
+        else:
+            market.append(["SELL", item, cnt])
+    market = market[:10]
+
+    # --- routing (same discipline as farm_operator: units MOVE to work) ---
+    claimed = set()
+
+    def assign(x, y):
+        tile = tiles[y][x]
+        if (x, y) in thirsty:
+            t = tiles[y][x]
+            if isinstance(t, dict) and t.get("kind") in ("COOP", "PASTURE"):
+                return ["FEED"]
+            return ["WATER"]
+        if (x, y) in harvestable:
+            return ["HARVEST"]
+        if (x, y) in weeds:
+            return ["DIG"]
+        # place bought animals on matching empty structures / build structures
+        if isinstance(tile, dict):
+            if tile.get("kind") == "PASTURE" and not tile.get("animal"):
+                if shed.get("COW", 0):
+                    return ["PLACE", "COW", 1]
+                if shed.get("SHEEP", 0):
+                    return ["PLACE", "SHEEP", 1]
+            if tile.get("kind") == "COOP" and not tile.get("animal") and shed.get("GOOSE", 0):
+                return ["PLACE", "GOOSE", 1]
+        if tile is None and (x, y) not in claimed:
+            if shed.get("COW", 0) or shed.get("SHEEP", 0):
+                return ["BUILD_PASTURE"]
+            if shed.get("GOOSE", 0):
+                return ["BUILD_COOP"]
+            if seeds.get("MELON", 0) > 0:
+                claimed.add((x, y)); return ["PLANT", "MELON"]
+            if seeds.get("WHEAT", 0) > 0:
+                claimed.add((x, y)); return ["PLANT", "WHEAT"]
+        for pool in (thirsty, harvestable, weeds, empty):
+            tgt = _nearest(x, y, [p for p in pool if p not in claimed])
+            if tgt:
+                if pool is empty and not (seeds.get("WHEAT", 0) or seeds.get("MELON", 0)
+                                          or shed.get("COW", 0) or shed.get("GOOSE", 0)
+                                          or shed.get("SHEEP", 0)):
+                    continue
+                claimed.add(tgt)
+                mv = _move_toward(x, y, tgt[0], tgt[1])
+                if mv:
+                    return mv
+        return ["PASS"]
+
+    fx, fy = me["farmer"]
+    farmer = assign(fx, fy)
+    hands = [assign(hx, hy) for hx, hy in me.get("hands", [])]
+    return {"farmer": farmer, "hands": hands, "market": market}
+
+
 STRATEGIES = {
     "animal_engine": animal_engine,
     "melon_baron": melon_baron,
     "market_maker": market_maker,
     "disciplined_engine": disciplined_engine,
     "farm_operator": farm_operator,
+    "investor": investor,
 }

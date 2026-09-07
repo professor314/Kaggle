@@ -10,7 +10,10 @@ Then summarize whether the top players converge on one strategy.
 """
 import json, glob, os, collections, statistics
 
-FOLDER = r"C:\Users\profe\OneDrive\Desktop\kaggle agent competition"
+FOLDER = os.environ.get(
+    "REPLAY_DIR",
+    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "replays"),
+)
 ANIMALS = ("COW", "SHEEP", "GOOSE")
 
 
@@ -68,7 +71,11 @@ def main():
     files = sorted(glob.glob(os.path.join(FOLDER, "*.json")))
     rows = []
     for f in files:
-        data = json.load(open(f, encoding="utf-8"))
+        try:
+            data = json.load(open(f, encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            print(f"  !! skipping unreadable replay {os.path.basename(f)}: {str(exc)[:60]}")
+            continue
         steps = data.get("steps")
         teams = data.get("info", {}).get("TeamNames", [])
         for pi in range(len(steps[0])):

@@ -1,0 +1,22 @@
+{
+  "genome": {
+    "wheat_seed_target": 15.0,
+    "carrot_gate": 6000,
+    "tomato_gate": 6000,
+    "melon_gate": 6000,
+    "land2_gate": 2500,
+    "land3_gate": 6000,
+    "land4_gate": 12000,
+    "animal_gate": 100000,
+    "cow_gate": 100000,
+    "sell_frac": 0.6,
+    "sell_min_price": 8,
+    "hoard_days": 1.0,
+    "fertilize": 1.0,
+    "care_animals": 1.0,
+    "hire_gate": 300,
+    "hires_per_day": 5,
+    "plant_priority": 0.4
+  },
+  "note": "meta_seed v3 (crop-only): wheat_seed_target=15, animals disabled (gates 100000), hires_per_day=5 (sweet spot; 8+ over-hires and drains cash). BEATS starter ~3738 vs 3526 and beats our current champion. Animal income (milk/wool/fertilizer) still to be re-introduced once the coop-placement bug is fixed. Good ratchet/GA SEED to fine-tune from."
+}

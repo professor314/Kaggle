@@ -20,6 +20,9 @@ Genes (all floats unless noted), with sane defaults:
   fertilize           >0.5 -> fertilize crops in their bonus window
   care_animals        >0.5 -> CARE for animals when fed
   hire_gate           money above which we hire a farm hand each day
+  hires_per_day       max HIRE orders to queue per day (engine has no cap; cost
+                      is fib(n)-per-day, so labor is cheap early — the meta hires
+                      ~12/day). Default 2 keeps legacy genomes unchanged.
   plant_priority      0..1 blends toward higher-value crops when multiple gated in
 """
 from __future__ import annotations
@@ -43,6 +46,7 @@ DEFAULT_GENES = {
     "fertilize": 0.0,
     "care_animals": 0.0,
     "hire_gate": 100000.0,
+    "hires_per_day": 2.0,
     "plant_priority": 0.5,
 }
 
@@ -63,6 +67,7 @@ GENE_BOUNDS = {
     "fertilize": (0, 1),
     "care_animals": (0, 1),
     "hire_gate": (500, 100000),
+    "hires_per_day": (1, 14),
     "plant_priority": (0, 1),
 }
 
@@ -133,6 +138,17 @@ def make_agent(genes: dict):
         unlocked = me["unlocked_quadrants"]
 
         market = []
+        hire_orders = []
+        # --- hire FIRST (labor is the engine): the meta hires several hands on
+        # turn 1, then buys. Queue up to `hires_per_day` (minus today's already),
+        # prepended so seeds/land/animals never crowd hires out of the 10-order
+        # cap. The Nth hire/day costs fib(N) and the engine skips any we can't
+        # afford, so this self-throttles by money. ---
+        if money >= g["hire_gate"]:
+            cap = int(round(g.get("hires_per_day", 2)))
+            want = max(0, cap - me.get("hires_today", 0))
+            hire_orders = [["HIRE"] for _ in range(want)]
+
         # --- selling: throttle to avoid crashing prices; hold cheap/early ---
         if day >= g["hoard_days"]:
             for item, count in shed.items():
@@ -176,24 +192,141 @@ def make_agent(genes: dict):
         elif nq < 4 and money >= g["land4_gate"]:
             market.append(["BUY_LAND"])
 
-        # --- hire ---
-        if money >= g["hire_gate"] and me.get("hires_today", 0) < 2:
-            market.append(["HIRE"])
-
+        # hires were queued first (see top); prepend them so they win the
+        # 10-order cap over discretionary buys.
+        market = hire_orders + market
         market = market[:10]
 
         # --- unit actions: farmer + hands ---
-        # place a bought animal if standing on a matching empty structure
-        farmer_tile = tiles[fy][fx]
-        farmer_action = _place_or_build(farmer_tile, shed, priv, fx, fy, tiles, seeds, day, money, _decide, g)
+        # Units DON'T teleport: each turn we (a) build a list of pending work
+        # tiles, (b) assign each unit its nearest un-taken target, then (c) if the
+        # unit is standing on its target emit the tile op, else step toward it.
+        # Without this, hired hands sit idle on the shed corner and hiring is a
+        # pure money sink (see META_ANALYSIS.md root-cause note).
+        n_hands = len(me.get("hands", []))
+        units = [(fx, fy)] + [tuple(h) for h in me.get("hands", [])]
 
-        hands = []
-        for (hx, hy) in me.get("hands", []):
-            hands.append(_decide(tiles[hy][hx], tiles, hx, hy, seeds, day, money))
+        tasks = _work_tiles(tiles, seeds, day, money, shed, g, _which_crops)
+        assignments = _assign(units, tasks)   # unit_idx -> (tx, ty) or None
 
+        actions = []
+        for ui, (ux, uy) in enumerate(units):
+            target = assignments.get(ui)
+            is_farmer = (ui == 0)
+            if target is None:
+                # No field work: farmer still handles animal build/place; others
+                # spread out so they don't stack (helps next-turn assignment).
+                if is_farmer:
+                    actions.append(_place_or_build(tiles[uy][ux], shed, priv, ux, uy,
+                                                   tiles, seeds, day, money, _decide, g))
+                else:
+                    actions.append(_spread_step(ux, uy, tiles, units, ui))
+                continue
+            tx, ty = target
+            if (ux, uy) == (tx, ty):
+                # On the work tile: farmer may build/place an animal here first.
+                if is_farmer:
+                    actions.append(_place_or_build(tiles[uy][ux], shed, priv, ux, uy,
+                                                   tiles, seeds, day, money, _decide, g))
+                else:
+                    actions.append(_decide(tiles[uy][ux], tiles, ux, uy, seeds, day, money))
+            else:
+                actions.append(_step_toward(ux, uy, tx, ty, len(tiles)))
+
+        farmer_action = actions[0]
+        hands = actions[1:1 + n_hands]
         return {"farmer": farmer_action, "hands": hands, "market": market}
 
     return agent
+
+
+def _work_tiles(tiles, seeds, day, money, shed, g, which_crops):
+    """Return a priority-ordered list of (x, y, kind) tiles that need work.
+
+    Higher-value / time-critical work first so greedy nearest-assignment sends
+    units to the most important tiles. `kind` is informational; the actual op is
+    re-derived by _decide when the unit arrives (state may have changed).
+    """
+    n = len(tiles)
+    ready = []      # HARVEST — collect income now
+    water = []      # WATER — keep plants alive (2 dry days -> weed)
+    animals = []    # FEED/CARE/COLLECT — keep animals alive + productive
+    weeds = []      # DIG — clear for replanting
+    empties = []    # PLANT — expand production
+    have_seed = any(seeds.get(c, 0) > 0 for c in which_crops(money))
+    for y in range(n):
+        for x in range(n):
+            t = tiles[y][x]
+            if t == "LOCKED":
+                continue
+            if t is None:
+                if have_seed:
+                    empties.append((x, y, "PLANT"))
+            elif isinstance(t, dict):
+                kind = t.get("kind")
+                if "animal" in t:
+                    need = (not t.get("fed_today", False)
+                            or (g["care_animals"] >= 0.5 and not t.get("cared_today", False))
+                            or t.get("fertilizer_available", 0)
+                            or t.get("yield_units", 0) > 0)
+                    if need:
+                        animals.append((x, y, "ANIMAL"))
+                elif kind == "PLANT":
+                    if t.get("yield_units", 0) > 0:
+                        ready.append((x, y, "HARVEST"))
+                    elif not t.get("watered_today", False):
+                        water.append((x, y, "WATER"))
+                elif kind == "WEED":
+                    weeds.append((x, y, "DIG"))
+    return ready + animals + water + weeds + empties
+
+
+def _assign(units, tasks):
+    """Greedy nearest assignment: each task (in priority order) goes to the
+    closest still-free unit. Returns {unit_idx: (tx, ty)}."""
+    assignments = {}
+    used = set()
+    for (tx, ty, _kind) in tasks:
+        best_ui, best_d = None, None
+        for ui, (ux, uy) in enumerate(units):
+            if ui in used:
+                continue
+            d = abs(ux - tx) + abs(uy - ty)
+            if best_d is None or d < best_d:
+                best_ui, best_d = ui, d
+        if best_ui is None:
+            break                      # every unit already has a task
+        assignments[best_ui] = (tx, ty)
+        used.add(best_ui)
+    return assignments
+
+
+def _step_toward(x, y, tx, ty, n):
+    """One orthogonal step toward (tx, ty). LOCKED tiles are passable, so no
+    obstacle checks are needed. Move along the larger axis first."""
+    dx, dy = tx - x, ty - y
+    if abs(dx) >= abs(dy):
+        if dx > 0:
+            return ["EAST"]
+        if dx < 0:
+            return ["WEST"]
+    if dy > 0:
+        return ["SOUTH"]
+    if dy < 0:
+        return ["NORTH"]
+    return ["PASS"]
+
+
+def _spread_step(x, y, tiles, units, ui):
+    """Idle unit with no task: drift toward the board interior / off the shed
+    corner so units don't all stack (improves next-turn assignment)."""
+    n = len(tiles)
+    half = n // 2
+    tx = half if x < half else half - 1
+    ty = half if y < half else half - 1
+    if (x, y) == (tx, ty):
+        return ["PASS"]
+    return _step_toward(x, y, tx, ty, n)
 
 
 def _place_or_build(tile, shed, priv, fx, fy, tiles, seeds, day, money, decide, g):
