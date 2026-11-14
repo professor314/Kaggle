@@ -1,0 +1,29 @@
+{
+    "model_sources":  [
+
+                      ],
+    "id":  "seanconnolly/s6e11-credit-card-fraud-lightgbm-baseline",
+    "enable_internet":  false,
+    "title":  "S6E11 Credit Card Fraud - LightGBM Baseline",
+    "kernel_type":  "script",
+    "keywords":  [
+                     "tabular",
+                     "classification",
+                     "lightgbm",
+                     "fraud"
+                 ],
+    "is_private":  false,
+    "dataset_sources":  [
+
+                        ],
+    "language":  "python",
+    "competition_sources":  [
+                                "playground-series-s6e11"
+                            ],
+    "enable_gpu":  false,
+    "enable_tpu":  false,
+    "code_file":  "s6e11-credit-card-fraud-lightgbm-baseline.py",
+    "kernel_sources":  [
+
+                       ]
+}

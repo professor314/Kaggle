@@ -1,3 +1,12 @@
+---
+title: "NLP Disaster Tweets — Solution Writeup"
+date: 2026-10-24T18:05:00-07:00
+draft: true
+categories: ["data-science"]
+tags: ["kaggle", "python", "nlp", "transformers", "distilbert", "ensemble", "ai-assisted"]
+description: "How a 3-way ensemble of DistilBERT, TF-IDF, and BERTweet reached 0.842 F1 on Kaggle's Disaster Tweets, and why submitting a model with a mediocre cross-validation score turned out to be the right call."
+---
+
 # NLP Disaster Tweets — Solution Writeup
 
 ## Summary

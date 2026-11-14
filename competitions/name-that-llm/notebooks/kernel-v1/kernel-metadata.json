@@ -1,0 +1,26 @@
+{
+    "model_sources":  [
+
+                      ],
+    "id":  "seanconnolly/name-that-llm-tfidf-lr-baseline",
+    "enable_internet":  false,
+    "title":  "Name That LLM - TF-IDF LR Baseline",
+    "kernel_type":  "script",
+    "keywords":  [
+
+                 ],
+    "is_private":  false,
+    "dataset_sources":  [
+
+                        ],
+    "language":  "python",
+    "competition_sources":  [
+                                "name-that-llm"
+                            ],
+    "enable_gpu":  false,
+    "enable_tpu":  false,
+    "code_file":  "name-that-llm-tfidf-lr-baseline.py",
+    "kernel_sources":  [
+
+                       ]
+}

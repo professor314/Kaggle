@@ -1,6 +1,12 @@
 # Kaggle ML Toolkit — Project Status
 
-*Last updated: 2026-09-03*
+*Last updated: 2026-10-24*
+
+> **Deadline note (2026-10-24):** Several comps below have passed their close
+> dates — kaggriculture (closed 2026-09-30), Playground S6E8/S6E9 (9/30),
+> rsna-knee (~2026-10-22). Treat these as final/archived unless re-verified via
+> the Kaggle CLI. Still-open / submit-anytime work: tabular comps (House-Prices,
+> Home-Data-ML, Store-Sales, Spaceship/Titanic) and Contradictory-Watson.
 
 ## Toolkit Status
 
@@ -18,15 +24,16 @@
 | Competition | Best LB | Rank | Submissions | Research | Status |
 |------------|---------|------|:-----------:|:--------:|--------|
 | **Titanic** | 0.773 (acc) | 6493 | 11 | ✅ Full | ✅ Complete |
-| **House-Prices** | **0.1235 (RMSLE)** | 713 | 6 | ✅ Full | ✅ Boosting blend + outlier removal |
+| **House-Prices** | **0.12162 (RMSLE)** | — | 7 | ✅ Full | ✅ TE blend NEW BEST 0.12162 (was 0.12345); broke plateau via OOF Neighborhood TE |
 | **Spaceship-Titanic** | 0.802 (acc) | 639 | 6 | ✅ Full | ✅ Plateaued ~0.80 (tree models) |
 | **Store-Sales** | **0.421 (RMSLE)** | 119 | 4 | ✅ Full | ✅ Per-family + holiday/tx features |
 | **Playground-S6E8** | **0.965 (AUC)** | 1610 | 7 | — | ✅ Iterated |
+| **Playground-S6E9** | **0.94169 (AUC)** | 1997 | 5 | ✅ Full | ✅ PLATEAUED ~0.9417 — boosters, compute, TE+linear base all exhausted |
 | **NLP-Disaster-Tweets** | **0.842 (F1)** | **49** | 6 | ✅ Full | ✅ 3-way ensemble (top 10%) |
-| **Home-Data-ML** | **13202 (MAE)** | **111** | 4 | — | ✅ Boosting stack (top 3%) |
+| **Home-Data-ML** | **12625 (MAE)** | — | 5 | — | ✅ TE blend NEW BEST 12625 (was 13202) |
 | **ConnectX** | rank 64 | 64 | 1 | — | ⚠️ Minimal |
 | **Digit-Recognizer** | **0.9945 (acc)** | 136 | 3 | — | ✅ 5-fold CNN + TTA (Phase 3) |
-| **Contradictory-Watson** | pending | — | kernel v8 | ✅ Full | 🟡 Kernel COMPLETE (0.69 val); submission.csv valid, needs manual web/kernel submit |
+| **Contradictory-Watson** | **0.75611 (acc)** | — | 5 | ✅ Full | ✅ Two-stage MNLI pretrain + FT, LB 0.756 (was 0.662) |
 | **LLM-Finetuning** | pending | — | kernel v3 | — | ⚠️ Code Competition |
 | **TPU-Getting-Started** | pending | — | kernel v3 | — | ⚠️ Code Competition |
 | **Kaggriculture** | **243.7** (agent) | — | 3 | ✅ Full | 🟢 GA-evolved genome agent (23 gens, 6,624 self-play games); beats built-in starter 88–100% |
@@ -74,14 +81,14 @@
   lazy tokenization) on the T4.
 
 ### New competition opportunity (2026-08-31)
-- **Playground S6E9** (deadline 2026-09-30, only ~26 teams so far): wide open,
-  early-mover advantage, fits the tabular toolkit perfectly. **Blocked on rules
-  acceptance:** data download 403s until the human clicks "Join Competition" at
-  kaggle.com/competitions/playground-series-s6e9. Folder scaffolded at
-  `competitions/playground-s6e9/`. Once joined: download data, run the standard
-  research → EDA → per-model → ensemble pipeline.
-- **Playground S6E8** closes **tonight** (2026-08-31 23:59). Currently 0.965 AUC,
-  rank ~1904. Low ROI for a last-minute single submission; leaving as-is.
+- **Playground S6E9** (deadline 2026-09-30): **RESOLVED / PLATEAUED (2026-09-27).**
+  Joined, data downloaded (now 3233 teams). 5 submissions; best public LB
+  **0.94169**, rank ~1997. Tried all documented levers: LGBM baseline, LGB+XGB+Cat
+  blend, big-iteration, and (this session) OOF target encoding + a Logistic base
+  for diversity (`notebooks/te_linear_blend.py`, OOF 0.94170 / LB 0.94160). The
+  boosters and the "diverse" linear base are rank-corr 0.9864, so nothing breaks
+  ~0.9417. Signal-saturated synthetic set. Leaving as-is; deadline 2026-09-30.
+- **Playground S6E8** closed 2026-08-31 at 0.965 AUC, rank ~1904. Done.
 
 ### Manual tasks left for the human (badges + publishing)
 - Utility Scripter badge: open `kaggle-workflow-utils` → File → Set as Utility Script

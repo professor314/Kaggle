@@ -1,3 +1,12 @@
+---
+title: "Phase 3: Teaching the Toolkit to Do Deep Learning"
+date: 2026-10-24T18:00:00-07:00
+draft: true
+categories: ["data-science"]
+tags: ["kaggle", "python", "deep-learning", "pytorch", "transformers", "cnn", "ai-assisted"]
+description: "Adding transformers and CNNs to an AI-assisted Kaggle toolkit, with the honest results: a normalization bug that faked a perfect score, a CV-vs-leaderboard surprise, and a documented Kaggle P100 GPU bug."
+---
+
 # Phase 3: Teaching the Toolkit to Do Deep Learning
 
 *How we added transformers and CNNs to an AI-assisted Kaggle toolkit — and the honest results, including the parts that didn't go as planned.*

@@ -1,0 +1,44 @@
+competition_name: nfl-big-data-bowl-2027
+problem_type: analytics  # hackathon writeup, judged by rubric (no leaderboard metric)
+primary_metric: null     # judged qualitatively; see Evaluation rubric
+target_column: null
+id_column: nflId
+random_seed: 42
+domain_params:
+  sponsor: The National Football League
+  category: Featured Hackathon
+  prize_pool_usd: 100000
+  tracks:
+    open: 45000       # Finalist 10k x3, Runner-Up 5k x3
+    university: 45000 # Finalist 10k x3, Runner-Up 5k x3 (undergrad only)
+    grand_prize: 10000 # finalists present at 2027 Combine
+  start_date: "2026-01-06"      # note: page showed "22 days ago"; official start per timeline
+  final_submission_deadline: "2027-01-06"
+  judging_period: "2027-01-07 to 2027-01-25"
+  results_announcement: "2027-01-26"
+  theme: Combine-to-NFL Performance
+  goal: >
+    Uncover non-obvious, actionable linkages between 10 Hz Combine sensor
+    tracking data and future regular-season NFL game performance.
+  submission_requirements:
+    max_words: 2000
+    max_tables_figures: 10
+    must_use_tracking_data: true   # PASS/FAIL gate — writeups not using tracking data are unscored
+    code_location: appendix_or_linked_notebook
+  evaluation_rubric:
+    combine_to_nfl_linkage: PASS/FAIL   # must explicitly link Combine tracking to NFL game performance
+    insight_quality: weighted
+    data_visualization: 0.20
+    writing_clarity: weighted
+  data_files:
+    - combine_results.csv            # traditional Combine measurements (40yd, shuttle, etc.)
+    - combine_tracking.csv           # 10 Hz sensor tracking during Combine drills
+    - game_tracking_2023.csv         # regular-season NGS tracking
+    - game_tracking_2024.csv
+    - game_tracking_2025.csv
+    - games.csv
+    - player_play.csv                # per-play participation / outcomes
+    - players.csv                    # roster/bio
+    - player_career_successes.csv    # career outcome labels
+  data_location: C:\Users\profe\kaggle-data\competitions\nfl-big-data-bowl-2027\data
+  data_license: CC BY-NC 4.0

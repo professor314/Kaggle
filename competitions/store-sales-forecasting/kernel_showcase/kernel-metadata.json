@@ -1,0 +1,14 @@
+{
+  "id": "seanconnolly/store-sales-per-family-lgbm",
+  "title": "Store Sales - Per-Family LightGBM",
+  "code_file": "store_sales_per_family_lgbm.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "competition_sources": ["store-sales-time-series-forecasting"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}

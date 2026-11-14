@@ -25,8 +25,9 @@ _transformer_out/
 _kaggle_badges/
 .venv-dl/
 
-# Kiro
-.kiro/
+# Kiro: keep steering docs in git (they ARE the workflow); ignore the rest
+.kiro/*
+!.kiro/steering/
 
 # IDE
 .vscode/
@@ -62,3 +63,14 @@ _nli_ds/
 _nlilabels_ds/
 competitions/*/kernel_eval/
 scripts/auc.txt
+
+# Competition data and materials: never push (competition rules forbid redistribution)
+competitions/*/data/
+competitions/*/research/*.pdf
+competitions/*/submissions/*.parquet
+competitions/*/submissions/*.zip
+competitions/*/submissions/*.npy
+
+# Other people's public notebooks pulled for research (re-pull with kaggle kernels pull)
+competitions/*/notebooks/ref*/
+

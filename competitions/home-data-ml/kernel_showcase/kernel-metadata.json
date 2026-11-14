@@ -1,0 +1,14 @@
+{
+  "id": "seanconnolly/home-data-boosting-stack",
+  "title": "Home Data ML - Boosting + Linear OOF Stack",
+  "code_file": "home_data_boosting_stack.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "competition_sources": ["home-data-for-ml-course"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}

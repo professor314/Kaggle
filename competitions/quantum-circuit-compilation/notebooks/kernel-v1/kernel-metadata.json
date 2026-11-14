@@ -1,0 +1,26 @@
+{
+    "model_sources":  [
+
+                      ],
+    "id":  "seanconnolly/qcc-sample-submission-baseline",
+    "enable_internet":  false,
+    "title":  "QCC Sample Submission Baseline",
+    "kernel_type":  "script",
+    "keywords":  [
+
+                 ],
+    "is_private":  false,
+    "dataset_sources":  [
+
+                        ],
+    "language":  "python",
+    "competition_sources":  [
+                                "google-verifiable-quantum-circuit-compilation"
+                            ],
+    "enable_gpu":  false,
+    "enable_tpu":  false,
+    "code_file":  "qcc-sample-submission-baseline.py",
+    "kernel_sources":  [
+
+                       ]
+}

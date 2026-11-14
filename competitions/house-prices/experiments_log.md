@@ -164,3 +164,43 @@ signal or method:
 - A properly weight-tuned stack (Lasso is strongest; weight it higher) rather
   than an equal-weight average.
 - These are the documented next steps; equal-weight blends have topped out.
+
+---
+
+## Experiment: OOF target encoding of high-cardinality categoricals (2026-10-24)
+
+**OOF RMSLE:** no-TE 0.11282 → **with-TE 0.11218** (improved) | **LB: 0.12162 (NEW BEST, submitted 2026-10-24)**
+
+Implemented the long-documented next lever: leakage-safe out-of-fold target
+encoding (smoothing=10) of 6 high-cardinality/high-signal categoricals
+(Neighborhood, MSSubClass, Exterior1st/2nd, SaleType, Condition1), appended as
+`*_te` features on top of the existing 92-feature pipeline (92 → 98 features).
+Same 5-model tree+linear blend. Script: `notebooks/boosting_stack_te.py`
+(offline; reads from local kaggle-data; anaconda python).
+
+| Stack | OOF RMSLE |
+|---|---|
+| No TE (blend) | 0.11282 |
+| **With TE (blend)** | **0.11218** |
+
+The simple blend again edged the Ridge-meta stack. TE moved OOF below the prior
+plateau for the first time since 0.11281. Submission saved to
+`submissions/boosting_stack_te.csv` (pred SalePrice median ~156k, range 48k–696k,
+sane). **Needs manual Kaggle submit to confirm LB** (prior best LB 0.12345).
+
+---
+
+## Experiment: TE smoothing sweep + NNLS-weighted blend (2026-10-24)
+
+**OOF RMSLE:** 0.11186 (smoothing=2, weighted) vs 0.11218 (equal) | **LB: 0.12173 (slightly worse than 0.12162)**
+
+Swept TE smoothing {2,5,10,20,50} and replaced the equal-weight blend with
+non-negative least-squares weights fit on OOF. Best OOF was smoothing=2 +
+weighted (0.11186), with Lasso (~0.44) and XGB/Cat carrying the weight and Ridge
+dropping to 0. Script: `notebooks/boosting_stack_te_tuned.py`.
+
+**LB came back 0.12173 — fractionally worse than the equal-weight TE run (0.12162)**
+despite the better OOF. The low smoothing (2) and OOF-tuned weights slightly
+overfit the local CV. **Keep `boosting_stack_te.csv` (0.12162) as the best
+submission.** Lesson repeats: on this plateaued comp, squeezing OOF past ~0.112
+does not transfer to the LB. Real further gains need new signal, not more tuning.

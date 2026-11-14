@@ -1,16 +1,39 @@
 # Next Session — Prioritized Checklist
 
-*Updated: 2026-08-27. Delete/reorder items as they're done. Full context lives in
+*Updated: 2026-10-24. Delete/reorder items as they're done. Full context lives in
 STATUS.md, PHASE3_PROGRESS.md, and each competition's experiments_log.md.*
+
+> **Passed deadlines (2026-10-24):** kaggriculture (9/30), Playground S6E8/S6E9
+> (9/30), rsna-knee (~10/22) are closed — archived unless re-verified. Focus is
+> now on submit-anytime tabular comps + Contradictory-Watson.
+
+## 0. Done this session (2026-10-24, offline)
+- [x] House-Prices: added OOF target encoding of Neighborhood + 5 other
+      high-card categoricals (`notebooks/boosting_stack_te.py`). OOF RMSLE
+      0.11282 → **0.11218**. SUBMITTED 2026-10-24 → **LB 0.12162 (NEW BEST**,
+      was 0.12345). Plateau broken. Next lever: per-model TE smoothing / weighted stack.
 
 ## 1. Check things in flight (do first)
 - [x] Watson SUBMITTED 2026-09-01 → **LB 0.66159** acc (single-stage XLM-R).
       Root cause of the long saga: `machine_shape` must be `NvidiaTeslaT4`.
 - [x] Joined Playground S6E9; data downloaded.
-- [ ] **S6E9 pipeline**: `lgbm_pipeline.py` written + dtype-fixed. Run it in the
-      BACKGROUND (see interrupt gotcha) to get OOF AUC, then submit. Deadline 2026-09-30.
+- [x] **S6E9 pipeline**: DONE + PLATEAUED (2026-09-27). Ran LGBM baseline, booster
+      blend, big-iteration, and OOF target-encoding + Logistic base. Best LB
+      **0.94169**. Nothing beats ~0.9417 (bases rank-corr 0.9864). See
+      `competitions/playground-s6e9/experiments_log.md` Exp 4. Deadline 2026-09-30.
+- [ ] **Kaggriculture (deadline 2026-09-30!)**: live agent = Herd engine v4
+      (`evo/herd_engine.py`). To improve, recreate `.venv-dl` with
+      `kaggle_environments`, benchmark any candidate head-to-head vs herd_engine
+      (NOT the GA champion), and only submit a VERIFIED win. See STRATEGY.md §3 for
+      the meta-fit-seed idea. NOT done this session (needs the DL env rebuilt).
 - [ ] Watson to 0.85+: two-stage MNLI pretrain → fine-tune (subsample + lazy
       tokenization on the T4).
+
+## Env note (2026-09-27)
+- `.venv-dl` is gone. The **anaconda3** python
+  (`C:\Users\profe\anaconda3\python.exe`) has lightgbm/xgboost/catboost/sklearn/
+  pandas/scipy and ran the S6E9 pipeline fine. It does NOT have
+  `kaggle_environments` (needed for kaggriculture) — rebuild a venv for that.
 
 ## 2. Quick wins / low effort
 - [ ] Publish the 2 Phase 3 blog drafts (docs/blog/phase3-deep-learning.md,
@@ -58,3 +81,9 @@ STATUS.md, PHASE3_PROGRESS.md, and each competition's experiments_log.md.*
   single-core; on big data (600K+ rows) that wastes a multi-core machine and a
   blend can take 10+ min. With all cores it's several times faster. For CatBoost
   on huge data consider `task_type="GPU"` (RTX 3090 available).
+
+## 2026-11-12 Kaggle first pass (8 unentered competitions)
+Scaffolded research/design_doc.md + experiments_log.md for: playground-s6e11, gemma-4-developer-agent, physical-engineerings-last-exam, name-that-llm, squares-in-squares, pokemon-ptcg-playground, enveda-casmi26, quantum-circuit-compilation.
+ALL BLOCKED on accepting rules on kaggle.com (data download 403 confirmed for S6E11). Suggested order: S6E11 (closes 11/30), gemma-4-developer-agent (12/2), PLE (19 teams), name-that-llm (reuses Watson code).
+S6E11 baseline script is ready: competitions/playground-s6e11/notebooks/lgbm_pipeline.py (compiles, not run).
+Skipped: gemma-4-developer-agent-paper (writing track, closes 2026-11-12 23:59).

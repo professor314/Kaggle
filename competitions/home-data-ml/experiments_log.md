@@ -46,3 +46,18 @@ stacking pays off when bases are diverse (tree + linear), not when they're simil
 - Target encoding for high-cardinality categoricals (Neighborhood)
 - Drop the two known GrLivArea outliers (>4000 sqft, low price)
 - Tune per-model hyperparameters (currently reasonable defaults)
+
+---
+
+## Experiment 4: OOF target encoding (2026-10-24)
+
+**OOF MAE:** no-TE 13,667 → **with-TE 13,596** | **LB MAE: 12625 (NEW BEST, was 13202)**
+
+Applied the documented next lever: leakage-safe OOF target encoding (smoothing=10)
+of 6 high-cardinality categoricals (Neighborhood, MSSubClass, Exterior1st/2nd,
+SaleType, Condition1) on top of the 92-feature pipeline + the 2-outlier drop.
+Trained on log target, evaluated MAE on raw dollars; simple blend beat the Ridge
+meta. Script: `notebooks/boosting_stack_te.py` (offline, anaconda python).
+
+Submitted → **LB 12625**, down from 13202. Same TE lever that broke the
+House-Prices plateau worked here too. Progression: 14184 → 13499 → 13202 → **12625**.

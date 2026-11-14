@@ -54,6 +54,10 @@ def __getattr__(name):
         from kaggle_ml_toolkit import deep_learning
 
         return getattr(deep_learning, name)
+    if name == "ImageClassifier":
+        from kaggle_ml_toolkit import image_classifier
+
+        return image_classifier.ImageClassifier
     if name in ("seed_everything", "autocast_context"):
         from kaggle_ml_toolkit import gpu_utils
 
@@ -104,6 +108,7 @@ __all__ = [
     "TransformerClassifier",
     "DeepLearningTrainer",
     "CNNClassifier",
+    "ImageClassifier",
     "get_device",
     "gpu_info",
     "seed_everything",

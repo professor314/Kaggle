@@ -1,0 +1,14 @@
+{
+  "id": "seanconnolly/nlp-disaster-tweets-3way-ensemble",
+  "title": "NLP Disaster Tweets 3way Ensemble",
+  "code_file": "nlp_3way_ensemble.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "competition_sources": ["nlp-getting-started"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}

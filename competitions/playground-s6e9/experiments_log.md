@@ -52,7 +52,8 @@ well (same lesson as Spaceship-Titanic and House-Prices).
 |---|-------|:-------:|:------:|-------|
 | 1 | LGBM 5-fold + engineered | (not captured) | 0.94161 | First entry |
 | 2 | LGB+XGB+Cat rank blend | 0.94206 | **0.94169** | Correlated bases; marginal gain |
-| 3 | LGBM big-iter (lr0.015, 8000, rich feats) | 0.94171 | submitted | More compute didn't help |
+| 3 | LGBM big-iter (lr0.015, 8000, rich feats) | 0.94171 | 0.94138 | More compute didn't help |
+| 4 | OOF target-encode + Logistic base, rank blend | 0.94170 | 0.94160 | The "diverse base" lever — still no gain |
 
 ## Experiment 3: LGBM big-iteration (2026-09-02)
 
@@ -61,3 +62,27 @@ extra interaction features. OOF AUC **0.94171** = no gain over the baseline.
 Early stopping fired at ~1000-1300 trees, so more rounds were never the binding
 constraint. **S6E9 is not compute-bound** either; gains need OOF target encoding
 or a non-booster base, not more iterations.
+
+## Experiment 4: OOF target encoding + linear base (2026-09-27)
+
+Ran the exact "what would actually move it" lever from Experiments 1-2:
+leakage-safe **OOF mean-target encoding** of all 6 categoricals (smoothing=20),
+fed into (a) LightGBM on label+TE features and (b) a **Logistic Regression** on
+numeric+TE features as a decorrelated base, then a weight-searched rank blend.
+Script: `notebooks/te_linear_blend.py` (runs on the anaconda3 python; `.venv-dl`
+is gone).
+
+Results:
+- LGBM (label+TE): OOF AUC **0.94168**
+- Logistic (num+TE): OOF AUC **0.93803**
+- base rank-corr (LGB vs Logistic): **0.9864** — the "different" base is still
+  highly correlated with the trees, so it adds almost no diversity.
+- Best rank blend (w_lgb=0.95): OOF AUC **0.94170**; **LB 0.94160**.
+
+**Conclusion — S6E9 is a genuine plateau at ~0.9417.** All three levers have now
+been tried and exhausted: more compute (Exp 3), more/correlated boosters (Exp 2),
+and target encoding + a linear base (Exp 4). None break 0.9417 on OOF or LB. The
+synthetic feature set is signal-saturated for this pipeline. Remaining unexplored
+(low expected value): appending the "original" source dataset if Kaggle published
+one, or a truly different architecture (TabNet/MLP). Deadline 2026-09-30. Leaving
+best submission as-is; not worth more runway.

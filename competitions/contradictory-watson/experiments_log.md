@@ -130,3 +130,46 @@ First successful Watson submission. The whole saga was a GPU-selection bug
 issues. LB 0.66 tracks the ~0.69 local val. This is a single-stage baseline.
 **To improve toward 0.85+:** two-stage MNLI/SNLI pretrain then fine-tune
 (memory-safe on T4 via subsample + lazy tokenization).
+
+---
+
+## Experiment 4: Two-stage MNLI pretrain → fine-tune (2026-10-24)
+
+**Kernel:** `seanconnolly/contradictory-watson-xlmr` **v15**, T4
+(`machine_shape: NvidiaTeslaT4`, internet on for the MNLI download).
+
+Implemented the documented path to 0.85+:
+- **Stage 1:** pretrain xlm-roberta-base on a 150k subsample of MNLI
+  (`nyu-mll/multi_nli`), 1 epoch. Lazy `Dataset.map` tokenization to avoid the
+  OOM that killed earlier two-stage attempts.
+- **Stage 2:** fine-tune on the 12k multilingual competition pairs, 4 epochs.
+- MAX_LEN 80, batch 64, fp16, REQUIRE_GPU guard. Sized to stay under the
+  120-min cap.
+
+**Verification before push:** ran a tiny CPU smoke test locally (rebuilt
+`.venv-dl` with torch 2.14.1 + transformers + datasets + accelerate) — both
+stages executed and the submission format validated (`id,prediction`, labels in
+{0,1,2}). MNLI label mapping matches the competition (0=entailment, 1=neutral,
+2=contradiction).
+
+**Status:** v15 pushed and RUNNING on Kaggle T4 (2026-10-24). Submit when
+COMPLETE:
+  `kaggle competitions submit contradictory-my-dear-watson -k seanconnolly/contradictory-watson-xlmr -f submission.csv -v 15`
+Prior best LB 0.66159 (single-stage). Target: 0.85+.
+
+**RESULT (2026-10-24): LB 0.75611** — up from 0.66159, **+0.095** from the MNLI
+pretraining stage. Run COMPLETE on T4 under the 120-min cap. Prediction
+distribution healthy and balanced (0:1812, 1:1672, 2:1711 of 5195), confirming
+the model learned real class structure, not a degenerate majority guess.
+
+Short of the 0.85 stretch target but a large, confirmed gain. **Remaining levers
+toward 0.85:** more MNLI (full 393k or +SNLI/XNLI), more stage-2 epochs,
+`xlm-roberta-large` at short max_len, or translate-train into the 15 languages.
+The two-stage recipe is now proven to transfer, so scaling stage 1 is the next step.
+
+### Watson submission history (updated)
+
+| # | Model | LB Acc | Notes |
+|---|-------|:------:|-------|
+| 4 | XLM-R single-stage T4 v11 | 0.66159 | First successful submit |
+| 5 | **XLM-R two-stage (MNLI 150k + FT) v15** | **0.75611** | **NEW BEST**, +0.095 from MNLI pretrain |

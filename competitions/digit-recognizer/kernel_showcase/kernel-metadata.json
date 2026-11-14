@@ -1,0 +1,14 @@
+{
+  "id": "seanconnolly/digit-cnn-ensemble-tta",
+  "title": "Digit Recognizer - 5-Fold CNN Ensemble + TTA",
+  "code_file": "digit_cnn_ensemble_tta.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "competition_sources": ["digit-recognizer"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}

@@ -1,0 +1,26 @@
+{
+    "model_sources":  [
+
+                      ],
+    "id":  "seanconnolly/enveda-casmi26-spectral-nn-baseline",
+    "enable_internet":  false,
+    "title":  "Enveda CASMI26 Spectral NN Baseline",
+    "kernel_type":  "script",
+    "keywords":  [
+
+                 ],
+    "is_private":  false,
+    "dataset_sources":  [
+
+                        ],
+    "language":  "python",
+    "competition_sources":  [
+                                "enveda-CASMI26-molecule-id-mass-spectra"
+                            ],
+    "enable_gpu":  false,
+    "enable_tpu":  false,
+    "code_file":  "enveda-casmi26-spectral-nn-baseline.py",
+    "kernel_sources":  [
+
+                       ]
+}

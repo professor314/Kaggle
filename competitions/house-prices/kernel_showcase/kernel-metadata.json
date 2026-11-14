@@ -1,0 +1,14 @@
+{
+  "id": "seanconnolly/house-prices-boosting-stack",
+  "title": "House Prices - Boosting + Linear OOF Stack",
+  "code_file": "house_prices_boosting_stack.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "competition_sources": ["house-prices-advanced-regression-techniques"],
+  "dataset_sources": [],
+  "kernel_sources": []
+}
