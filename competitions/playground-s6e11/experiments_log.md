@@ -15,3 +15,8 @@
 **Result:** OOF AUC 0.94594 (folds 0.941-0.951), OOF AUPRC 0.50506. **Public LB 0.94673** (submission 58298326). VERIFIED: LB tracks OOF AUC, so metric is AUC-like (still confirm on Overview tab).
 **Gap to top:** leader 0.95465, public stacks ~0.953 (VERIFIED earlier). Gap ~0.008.
 **Next levers:** read top public stack notebooks; engineered features (amount vs balance, velocity x distance, hour cyclic); XGB/CatBoost; OOF target encoding (helped House-Prices); rank-blend.
+
+## 2026-11-26 - Experiment 2: feature engineering + LGB/XGB rank blend
+**Approach:** notebooks/fe_blend.py. 12 new features (amount/balance ratio, amount x dist/velocity, hour sin/cos, risk-flag sum), LGBM (31 leaves) + XGB (depth 5), rank average.
+**Result (VERIFIED, OOF):** LGB 0.94624, XGB 0.94648, blend **0.94661** (baseline 0.94594). Small gain; ratios add little, so signal is mostly in raw columns.
+**Next levers:** gap to top (~0.953) is not from FE. Try OOF target encoding on categoricals, CatBoost, deeper/longer trees, original-dataset augmentation (check Code tab for the source dataset).
