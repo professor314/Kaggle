@@ -1,0 +1,38 @@
+{
+    "id":  "seanconnolly/enveda-casmi26-p2s-reproduction",
+    "title":  "Enveda CASMI26 P2S reproduction",
+    "code_file":  "enveda-casmi26-p2s-reproduction.ipynb",
+    "language":  "python",
+    "kernel_type":  "notebook",
+    "is_private":  true,
+    "enable_gpu":  true,
+    "enable_tpu":  false,
+    "enable_internet":  false,
+    "keywords":  [
+                     "gpu",
+                     "chemistry"
+                 ],
+    "dataset_sources":  [
+                            "samartalwar/casmi-2026-spectral-library-massbankharmonized",
+                            "sanpier/casmi-spectrum-model-v1",
+                            "dmitriigluzdov/casmi26-fold-safe-fpnet",
+                            "dmitriigluzdov/casmi26-natural-product-knowledge-table",
+                            "dmitriigluzdov/casmi26-natural-product-panel-benchmark",
+                            "dmitriigluzdov/casmi26-pubchem-popularity-prior",
+                            "dmitriigluzdov/casmi26-attributed-v4g-reproduction-assets",
+                            "takumuhata/casmi26-extlib",
+                            "sanpier/catalogue-experiment-saner",
+                            "metric/rdkit-2026-3-3-wheel"
+                        ],
+    "kernel_sources":  [
+                           "popwenman/casmi26-scorer-train-v80"
+                       ],
+    "competition_sources":  [
+                                "enveda-CASMI26-molecule-id-mass-spectra"
+                            ],
+    "model_sources":  [
+
+                      ],
+    "docker_image":  "gcr.io/kaggle-private-byod/python@sha256:37c64f7dd9c54116ecd1bcc88817c5469b88387388fade02bfa8bf3fc647d461",
+    "machine_shape":  "NvidiaTeslaT4"
+}
