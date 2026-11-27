@@ -33,3 +33,9 @@
 **Full run (shallow_te_full.py):** 4-leaf LGBM, per-exact-value TargetEncoder fitted inside each fold, original rows appended to train folds. OOF **0.94768** alone (best single model). Rank blend with previous best: w=0.5 0.94788, w=0.7 **0.94795**.
 **Submitted w=0.7: LB 0.94843** (was 0.94719).
 **Next levers:** pair-crossed target encodings among top-10 columns; shallow XGB/CatBoost; spline GLM; RealMLP/TabM (needs torch, use a Kaggle GPU kernel); seed averaging. Top public (~0.9575) mostly rank-mixes other authors' submission files; we will not copy that.
+
+## 2026-11-27 (later) - Experiments 5 and 6: pair TEs, GLM, depth-2 XGB
+**Exp 5 (shallow_pairs.py, VERIFIED):** pair-crossed TEs among top-10 columns (69 TE cols) + 3 seeds. OOF 0.94733, WORSE than singles-only 0.94768. Blend gain +0.00001. Not submitted. Pairs add noise; matches public finding that crossing hurts.
+**Exp 6 (diverse_members.py, VERIFIED):** logistic GLM on logit(TE) OOF 0.94243 (no blend gain, rejected). Depth-2 XGB on TE + original rows OOF **0.94772** (best single). Blend w=0.3 with prior best: OOF 0.94803. Submitted: **LB 0.94849** (was 0.94843).
+**Takeaway:** we are at the ceiling of this feature set (~0.9480 OOF). Top public (~0.9575) comes from large pools of members and mixing other authors' files.
+**Next:** neural nets (RealMLP/TabM, needs torch on a Kaggle GPU kernel) are the one remaining diverse family; closes 11/30.

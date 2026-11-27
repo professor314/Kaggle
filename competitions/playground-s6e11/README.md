@@ -12,6 +12,7 @@
 | 1 | LightGBM, raw features | 0.94594 | 0.94673 | VERIFIED |
 | 2 | +12 engineered features, LGB + XGB rank blend | 0.94661 | 0.94705 | VERIFIED |
 | 3 | +CatBoost (native categoricals), 3-way rank blend w=0.3 | 0.94676 | 0.94719 | VERIFIED |
+| 5 | +depth-2 XGB on TE, w=0.3 with #4 | 0.94803 | 0.94849 | VERIFIED |
 | 4 | 4-leaf LGBM + in-fold TE + original rows, blend w=0.7 with #3 | 0.94795 | 0.94843 | VERIFIED |
 
 ## 3. Design decisions
@@ -26,6 +27,8 @@
 - **In-fold target encoding on exact values.** sklearn TargetEncoder fitted only on each training fold (cross-fitted), so no label leakage. Gives a 4-leaf tree a per-value fraud curve.
 - **Original dataset appended to training folds only.** Competition data is synthetic from uditjain13/credit-card-fraud-detection-2026. Gain +0.0001 to +0.0002. Local copy: C:\Users\profe\kaggle-data\s6e11-original.
 - **Not copying public submission blends.** Top public notebooks (~0.9575) mostly rank-mix other authors' prediction files. We build our own models.
+- **Rejected: pair-crossed TEs** (OOF 0.94733 vs 0.94768 singles) and **logistic GLM** (0.94243, no blend gain). Rejected because they did not move OOF.
+- **Depth-2 XGB** is the best single model (OOF 0.94772); blended at 0.3.
 
 ## 4. Toolkit reuse
 Ported from `playground-s6e9/notebooks/lgbm_pipeline.py`. Nothing new added to `kaggle_ml_toolkit` yet. Candidate: a shared `rank_blend` helper.
