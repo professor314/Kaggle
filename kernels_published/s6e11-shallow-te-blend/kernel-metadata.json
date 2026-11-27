@@ -1,0 +1,16 @@
+{
+  "id": "seanconnolly/s6e11-shallow-te-blend",
+  "title": "S6E11 shallow trees on target encodings",
+  "code_file": "s6e11-shallow-te-blend.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": ["uditjain13/credit-card-fraud-detection-2026"],
+  "kernel_sources": [],
+  "competition_sources": ["playground-series-s6e11"],
+  "model_sources": []
+}
