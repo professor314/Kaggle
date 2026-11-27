@@ -20,3 +20,9 @@
 **Approach:** notebooks/fe_blend.py. 12 new features (amount/balance ratio, amount x dist/velocity, hour sin/cos, risk-flag sum), LGBM (31 leaves) + XGB (depth 5), rank average.
 **Result (VERIFIED, OOF):** LGB 0.94624, XGB 0.94648, blend **0.94661** (baseline 0.94594). Small gain; ratios add little, so signal is mostly in raw columns.
 **Next levers:** gap to top (~0.953) is not from FE. Try OOF target encoding on categoricals, CatBoost, deeper/longer trees, original-dataset augmentation (check Code tab for the source dataset).
+
+## 2026-11-26 (night) - Experiment 3: CatBoost + rank blend
+**Approach:** notebooks/cat_te_blend.py. CatBoost depth 6, native categoricals, 5-fold. About 5 min per fold on CPU.
+**Result (VERIFIED):** Cat OOF 0.94565 (weaker alone than LGB/XGB). Blend with FE blend: w_cat 0.3 -> OOF 0.94676, 0.5 -> 0.94666, 0.7 -> 0.94638. Submitted w=0.3: **LB 0.94719** (was 0.94705).
+**Takeaway:** CatBoost adds only +0.00015 OOF. Boosters on these features are saturated near 0.9468. Remaining gap (~0.008) needs new data or signal, not more models.
+**Next levers:** find original source dataset and add as training data; seed averaging; check public top notebooks for the trick.

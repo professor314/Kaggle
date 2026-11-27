@@ -87,3 +87,6 @@ Scaffolded research/design_doc.md + experiments_log.md for: playground-s6e11, ge
 ALL BLOCKED on accepting rules on kaggle.com (data download 403 confirmed for S6E11). Suggested order: S6E11 (closes 11/30), gemma-4-developer-agent (12/2), PLE (19 teams), name-that-llm (reuses Watson code).
 S6E11 baseline script is ready: competitions/playground-s6e11/notebooks/lgbm_pipeline.py (compiles, not run).
 Skipped: gemma-4-developer-agent-paper (writing track, closes 2026-11-12 23:59).
+
+## 2026-11-26 S6E11 status
+Best LB 0.94719 (3-way blend). Boosters saturated. Next: look for original source dataset to augment, seed-average. Closes 11/30. Then Enveda (12/14, LB 0.000 vs ~0.56 leaders), Gemma (12/2).
