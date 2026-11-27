@@ -90,3 +90,6 @@ Skipped: gemma-4-developer-agent-paper (writing track, closes 2026-11-12 23:59).
 
 ## 2026-11-26 S6E11 status
 Best LB 0.94719 (3-way blend). Boosters saturated. Next: look for original source dataset to augment, seed-average. Closes 11/30. Then Enveda (12/14, LB 0.000 vs ~0.56 leaders), Gemma (12/2).
+
+## 2026-11-27 S6E11
+Best LB 0.94843 (shallow TE + original rows). See competitions/playground-s6e11/README.md section 6. Closes 11/30. After: Enveda (12/14), Gemma (12/2).
