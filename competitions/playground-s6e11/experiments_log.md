@@ -26,3 +26,10 @@
 **Result (VERIFIED):** Cat OOF 0.94565 (weaker alone than LGB/XGB). Blend with FE blend: w_cat 0.3 -> OOF 0.94676, 0.5 -> 0.94666, 0.7 -> 0.94638. Submitted w=0.3: **LB 0.94719** (was 0.94705).
 **Takeaway:** CatBoost adds only +0.00015 OOF. Boosters on these features are saturated near 0.9468. Remaining gap (~0.008) needs new data or signal, not more models.
 **Next levers:** find original source dataset and add as training data; seed averaging; check public top notebooks for the trick.
+
+## 2026-11-27 - Experiment 4: shallow trees + original data + in-fold target encoding
+**Source of ideas:** public notebooks (alexchilton shallow-tree stack, goodpjw2008 board model). Data is synthetic from uditjain13/credit-card-fraud-detection-2026 (20k rows, local copy in C:\Users\profe\kaggle-data\s6e11-original, not in git).
+**Fold-0 ablation (shallow_orig.py, VERIFIED):** 4 leaves 0.94565, 8 leaves 0.94549, 31 leaves 0.94425. Original rows added to training: +0.0001 to +0.0002. Target is near-additive, so small trees win.
+**Full run (shallow_te_full.py):** 4-leaf LGBM, per-exact-value TargetEncoder fitted inside each fold, original rows appended to train folds. OOF **0.94768** alone (best single model). Rank blend with previous best: w=0.5 0.94788, w=0.7 **0.94795**.
+**Submitted w=0.7: LB 0.94843** (was 0.94719).
+**Next levers:** pair-crossed target encodings among top-10 columns; shallow XGB/CatBoost; spline GLM; RealMLP/TabM (needs torch, use a Kaggle GPU kernel); seed averaging. Top public (~0.9575) mostly rank-mixes other authors' submission files; we will not copy that.
