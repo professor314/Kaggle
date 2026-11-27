@@ -1,4 +1,4 @@
-"""Kiro hook: keep Kaggle work tied to the toolkit, steering docs, git, and the blog.
+"""Kiro hook: keep Kaggle work tied to the toolkit, steering docs, git, and per-competition READMEs.
 
 Kiro runs this script at two points (configured in ~/.kiro/agents/kaggle.json):
 
@@ -9,7 +9,7 @@ Kiro runs this script at two points (configured in ~/.kiro/agents/kaggle.json):
                     outside the Kaggle repo (where the repo's own steering docs don't auto-load).
 
   stop              When the assistant finishes a turn. If Kaggle work happened and the repo has
-                    uncommitted/unpushed changes or no blog draft for today, we print a reminder
+                    uncommitted/unpushed changes or a recently-touched competition has no README.md, we print a reminder
                     to STDERR and exit 1. Kiro shows a failing hook's STDERR to the user as a
                     warning, so neither of us can quietly skip the end-of-session checklist.
 
@@ -88,10 +88,19 @@ def toolkit_index() -> list[str]:
     return lines
 
 
-def todays_blog() -> Path | None:
-    """Today's blog draft if one exists (files named YYYY-MM-DD-*.md in docs/blog)."""
-    hits = sorted(BLOG.glob(f"{dt.date.today():%Y-%m-%d}*.md"))
-    return hits[0] if hits else None
+def readmes_missing() -> list[str]:
+    """Competitions touched in the last 2 days (experiments_log.md) that lack a README.md.
+
+    The per-competition README replaces the old daily blog draft: it records the design
+    decisions (see 00-kaggle-workflow.md, "README standard").
+    """
+    import time
+    missing = []
+    for log in (REPO / "competitions").glob("*/experiments_log.md"):
+        recent = time.time() - log.stat().st_mtime < 2 * 86400
+        if recent and not (log.parent / "README.md").exists():
+            missing.append(log.parent.name)
+    return missing
 
 
 def on_prompt(event: dict) -> None:
@@ -99,20 +108,20 @@ def on_prompt(event: dict) -> None:
     if not is_kaggle(event.get("prompt", ""), event.get("cwd", "")):
         return  # not Kaggle work: stay silent so other projects aren't cluttered
     dirty, ahead = git_state()
-    blog = todays_blog()
+    missing = readmes_missing()
     print("KAGGLE WORKFLOW HOOK (from ~/.kiro/agents/kaggle.json)")
     print(f"Repo: {REPO}")
     print(f"MUST READ before acting: {STEERING / '00-kaggle-workflow.md'} and the phase doc(s)")
     print("  for this step (01-research .. 08-content-creation), plus docs/LESSONS.md and the")
     print("  competition's experiments_log.md. Use/extend the toolkit before writing new code.")
     print(f"Git: {dirty} uncommitted path(s), {ahead} unpushed commit(s).")
-    print(f"Blog draft today: {blog.name if blog else 'NONE YET (create docs/blog/<date>-<topic>.md, draft: true)'}")
+    print("Competition README missing for: " + (", ".join(missing) if missing else "none") + "  (README standard in 00-kaggle-workflow.md)")
     print("Toolkit modules (kaggle_ml_toolkit):")
     print("\n".join(toolkit_index()))
 
 
 def on_stop(event: dict) -> None:
-    """Nag (via a warning) if Kaggle work ended without git + blog housekeeping."""
+    """Nag (via a warning) if Kaggle work ended without git + README housekeeping."""
     if not is_kaggle(event.get("assistant_response", ""), event.get("cwd", "")):
         return
     dirty, ahead = git_state()
@@ -121,8 +130,8 @@ def on_stop(event: dict) -> None:
         problems.append(f"{dirty} uncommitted change(s) in the Kaggle repo")
     if ahead:
         problems.append(f"{ahead} commit(s) not pushed to GitHub")
-    if todays_blog() is None:
-        problems.append("no blog draft for today in docs/blog/")
+    if readmes_missing():
+        problems.append("README.md missing for: " + ", ".join(readmes_missing()))
     if problems:
         print("Kaggle checklist: " + "; ".join(problems) + ".", file=sys.stderr)
         sys.exit(1)  # non-zero = Kiro shows the STDERR text to Sean as a warning
