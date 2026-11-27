@@ -93,3 +93,6 @@ Best LB 0.94719 (3-way blend). Boosters saturated. Next: look for original sourc
 
 ## 2026-11-27 S6E11
 Best LB 0.94843 (shallow TE + original rows). See competitions/playground-s6e11/README.md section 6. Closes 11/30. After: Enveda (12/14), Gemma (12/2).
+
+## 2026-11-27 late
+S6E11 best LB 0.94849. Pairs/GLM rejected. Remaining: neural nets on Kaggle GPU. Then Enveda, Gemma.
